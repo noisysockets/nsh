@@ -1,2 +1,3 @@
-# cli
-The Noisy Sockets CLI
+# nsh
+
+The Noisy Sockets CLI.
