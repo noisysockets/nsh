@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/adrg/xdg"
 	"github.com/noisysockets/noisysockets/config"
-	"github.com/noisysockets/noisysockets/config/types"
 	"github.com/noisysockets/noisysockets/config/v1alpha1"
 	configcmd "github.com/noisysockets/nsh/cmd/config"
+	peercmd "github.com/noisysockets/nsh/cmd/peer"
+	routecmd "github.com/noisysockets/nsh/cmd/route"
+	shellcmd "github.com/noisysockets/nsh/cmd/shell"
 	"github.com/noisysockets/nsh/internal/util"
 
 	"github.com/urfave/cli/v2"
@@ -56,52 +57,30 @@ func main() {
 		},
 	}
 
-	beforeAll := func(c *cli.Context) error {
+	initLogger := func(c *cli.Context) error {
 		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 			Level: (*slog.Level)(c.Generic("log-level").(*util.LevelFlag)),
 		}))
 
+		return nil
+	}
+
+	loadConfig := func(c *cli.Context) error {
 		configPath := c.String("config")
 
-		_, err = os.Stat(configPath)
-		configDoesNotExist := os.IsNotExist(err)
-
-		if !c.IsSet("config") && configDoesNotExist {
-			configDir := filepath.Dir(configPath)
-			if _, err := os.Stat(configDir); os.IsNotExist(err) {
-				if err := os.MkdirAll(configDir, 0o700); err != nil {
-					return fmt.Errorf("failed to create config directory: %w", err)
-				}
+		configFile, err := os.Open(configPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("config file does not exist, run `nsh config init` to create one")
 			}
 
-			configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_RDWR, 0o400)
-			if err != nil {
-				return fmt.Errorf("failed to create config file: %w", err)
-			}
-			defer configFile.Close()
+			return fmt.Errorf("failed to open config file: %w", err)
+		}
+		defer configFile.Close()
 
-			// TODO: generate valid default config
-			conf = &v1alpha1.Config{
-				TypeMeta: types.TypeMeta{
-					APIVersion: v1alpha1.ApiVersion,
-					Kind:       "Config",
-				},
-			}
-
-			if err := config.ToYAML(configFile, conf); err != nil {
-				return fmt.Errorf("failed to write default config: %w", err)
-			}
-		} else {
-			configFile, err := os.Open(configPath)
-			if err != nil {
-				return fmt.Errorf("failed to open config file: %w", err)
-			}
-			defer configFile.Close()
-
-			conf, err = config.FromYAML(configFile)
-			if err != nil {
-				return fmt.Errorf("failed to read config: %w", err)
-			}
+		conf, err = config.FromYAML(configFile)
+		if err != nil {
+			return fmt.Errorf("failed to read config: %w", err)
 		}
 
 		return nil
@@ -111,48 +90,222 @@ func main() {
 		Name:   "nsh",
 		Usage:  "The Noisy Sockets CLI",
 		Flags:  sharedFlags,
-		Before: beforeAll,
+		Before: initLogger,
 		Commands: []*cli.Command{
 			{
 				Name:  "config",
-				Usage: "Manage WireGuard configuration",
+				Usage: "Manage configuration",
 				Subcommands: []*cli.Command{
 					{
+						Name:  "init",
+						Usage: "Create a new configuration",
+						Flags: append([]cli.Flag{
+							&cli.IntFlag{
+								Name:    "listen-port",
+								Aliases: []string{"l"},
+								Usage:   "The port to listen on",
+								Value:   51820,
+							},
+							&cli.StringSliceFlag{
+								Name:  "ip",
+								Usage: "The IP address/s to assign to the peer",
+								// Use the	172.21.248.0/24 subnet as the default.
+								// This CIDR is chosen to reduce the likelihood of conflicts.
+								Value: cli.NewStringSlice("172.21.248.1"),
+							},
+						}, sharedFlags...),
+						Before: initLogger,
+						Action: func(c *cli.Context) error {
+							return configcmd.Init(logger,
+								c.String("config"),
+								c.Int("listen-port"),
+								c.StringSlice("ip"))
+						},
+					},
+					{
 						Name:  "import",
-						Usage: "Import WireGuard INI configuration",
+						Usage: "Import existing WireGuard configuration",
 						Flags: append([]cli.Flag{
 							&cli.StringFlag{
 								Name:    "input",
 								Aliases: []string{"i"},
-								Usage:   "The path to read the wireguard configuration",
+								Usage:   "The path to read the WireGuard formatted configuration",
 								Value:   "-",
 							},
 						}, sharedFlags...),
-						Before: beforeAll,
+						Before: initLogger,
 						Action: func(c *cli.Context) error {
-							configPath := c.String("config")
-
-							wireguardConfigPath := c.String("input")
-
-							return configcmd.Import(configPath, wireguardConfigPath)
+							return configcmd.Import(
+								c.String("config"),
+								c.String("input"))
 						},
 					},
 					{
 						Name:  "export",
-						Usage: "Export WireGuard INI configuration",
+						Usage: "Export WireGuard configuration",
 						Flags: append([]cli.Flag{
 							&cli.StringFlag{
 								Name:    "output",
 								Aliases: []string{"o"},
-								Usage:   "The path to write the configuration",
+								Usage:   "The path to write the WireGuard formatted configuration",
 								Value:   "-",
 							},
 						}, sharedFlags...),
-						Before: beforeAll,
+						Before: beforeAll(initLogger, loadConfig),
 						Action: func(c *cli.Context) error {
-							wireguardConfigPath := c.String("output")
+							return configcmd.Export(
+								conf,
+								c.String("output"))
+						},
+					},
+					{
+						Name:      "show",
+						Usage:     "Show the current configuration",
+						Flags:     sharedFlags,
+						Args:      true,
+						ArgsUsage: "query",
+						Before:    beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							if c.Args().Len() != 1 {
+								_ = cli.ShowSubcommandHelp(c)
+								return fmt.Errorf("expected jq syntax query as argument")
+							}
 
-							return configcmd.Export(conf, wireguardConfigPath)
+							return configcmd.Show(c.Context, conf, c.Args().First())
+						},
+					},
+				},
+			},
+			{
+				Name:   "peer",
+				Usage:  "Manage peers",
+				Flags:  sharedFlags,
+				Before: beforeAll(initLogger, loadConfig),
+				Subcommands: []*cli.Command{
+					{
+						Name:  "add",
+						Usage: "Add a peer",
+						Flags: append([]cli.Flag{
+							&cli.StringFlag{
+								Name:    "name",
+								Aliases: []string{"n"},
+								Usage:   "The name of the peer",
+							},
+							&cli.StringFlag{
+								Name:     "public-key",
+								Aliases:  []string{"k"},
+								Usage:    "The public key of the peer",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:    "endpoint",
+								Aliases: []string{"e"},
+								Usage:   "The peer's public address/port (if available)",
+							},
+							&cli.StringSliceFlag{
+								Name:     "ip",
+								Usage:    "The IP address/s to assign to the peer",
+								Required: true,
+							},
+						}, sharedFlags...),
+						Before: beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							return peercmd.Add(
+								configPath,
+								c.String("name"),
+								c.String("public-key"),
+								c.String("endpoint"),
+								c.StringSlice("ip"),
+							)
+						},
+					},
+					{
+						Name:      "remove",
+						Usage:     "Remove a peer",
+						Flags:     sharedFlags,
+						Args:      true,
+						ArgsUsage: "name | public-key",
+						Before:    beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							if c.Args().Len() != 1 {
+								_ = cli.ShowSubcommandHelp(c)
+								return fmt.Errorf("expected name or public-key as argument")
+							}
+
+							return peercmd.Remove(
+								configPath,
+								c.Args().First(),
+							)
+						},
+					},
+				},
+			},
+			{
+				Name:   "route",
+				Usage:  "Manage routes",
+				Flags:  sharedFlags,
+				Before: beforeAll(initLogger, loadConfig),
+				Subcommands: []*cli.Command{
+					{
+						Name:  "add",
+						Usage: "Add a route",
+						Flags: append([]cli.Flag{
+							&cli.StringFlag{
+								Name:     "destination",
+								Aliases:  []string{"d"},
+								Usage:    "The destination CIDR",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "via",
+								Aliases:  []string{"v"},
+								Usage:    "The gateway peer name or public key",
+								Required: true,
+							},
+						}, sharedFlags...),
+						Before: beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							return routecmd.Add(
+								configPath,
+								c.String("destination"),
+								c.String("via"),
+							)
+						},
+					},
+					{
+						Name:      "remove",
+						Usage:     "Remove a route",
+						Flags:     sharedFlags,
+						Args:      true,
+						ArgsUsage: "destination",
+						Before:    beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							if c.Args().Len() != 1 {
+								_ = cli.ShowSubcommandHelp(c)
+								return fmt.Errorf("expected destination as argument")
+							}
+
+							return routecmd.Remove(
+								configPath,
+								c.Args().First(),
+							)
+						},
+					},
+				},
+			},
+			{
+				Name:   "shell",
+				Usage:  "Remote shell",
+				Flags:  sharedFlags,
+				Before: beforeAll(initLogger, loadConfig),
+				Subcommands: []*cli.Command{
+					{
+						Name:   "serve",
+						Usage:  "Start a remote shell server",
+						Flags:  sharedFlags,
+						Before: beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							return shellcmd.Serve(c.Context, logger, conf)
 						},
 					},
 				},
@@ -163,5 +316,17 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		logger.Error("Error", slog.Any("error", err))
 		os.Exit(1)
+	}
+}
+
+func beforeAll(funcs ...cli.BeforeFunc) cli.BeforeFunc {
+	return func(c *cli.Context) error {
+		for _, f := range funcs {
+			if err := f(c); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 }

@@ -20,41 +20,36 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/noisysockets/noisysockets/config"
+	"github.com/noisysockets/noisysockets/config/v1alpha1"
+	"github.com/noisysockets/nsh/internal/util"
 )
 
-func Import(configPath, wireguardConfigPath string) error {
+func Import(configPath, wireGuardConfigPath string) error {
 	var r io.Reader
-	if wireguardConfigPath == "-" {
+	if wireGuardConfigPath == "-" {
 		r = os.Stdin
 	} else {
-		wireguardConfigFile, err := os.Open(wireguardConfigPath)
+		wireGuardConfigFile, err := os.Open(wireGuardConfigPath)
 		if err != nil {
-			return fmt.Errorf("error opening wireguard config: %w", err)
+			return fmt.Errorf("error opening WireGuard config: %w", err)
 		}
-		defer wireguardConfigFile.Close()
-		r = wireguardConfigFile
+		defer wireGuardConfigFile.Close()
+		r = wireGuardConfigFile
 	}
 
-	conf, err := config.FromINI(r)
-	if err != nil {
-		return fmt.Errorf("error parsing wireguard config: %w", err)
-	}
+	return util.UpdateConfig(configPath, func(_ *v1alpha1.Config) (*v1alpha1.Config, error) {
+		conf, err := config.FromINI(r)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing WireGuard config: %w", err)
+		}
 
-	if err := os.Remove(configPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("error removing existing noisy sockets config file: %w", err)
-	}
+		if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
+			return nil, fmt.Errorf("failed to create config directory: %w", err)
+		}
 
-	configFile, err := os.OpenFile(configPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o400)
-	if err != nil {
-		return fmt.Errorf("error opening noisy sockets config file: %w", err)
-	}
-	defer configFile.Close()
-
-	if err := config.ToYAML(configFile, conf); err != nil {
-		return fmt.Errorf("error writing noisy sockets config: %w", err)
-	}
-
-	return nil
+		return conf, nil
+	})
 }
