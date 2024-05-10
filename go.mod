@@ -8,9 +8,11 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/itchyny/gojq v0.12.15
 	github.com/noisysockets/noisysockets v0.17.4
-	github.com/noisysockets/shell v0.3.1
+	github.com/noisysockets/shell v0.4.0
 	github.com/rs/cors v1.11.0
 	github.com/urfave/cli/v2 v2.27.2
+	golang.org/x/sync v0.7.0
+	golang.org/x/term v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -32,7 +34,6 @@ require (
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect

@@ -18,14 +18,15 @@ package route
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/noisysockets/noisysockets/config/v1alpha1"
 	"github.com/noisysockets/nsh/internal/util"
 	"github.com/noisysockets/nsh/internal/validate"
 )
 
-func Add(configPath, destination, via string) error {
-	return util.UpdateConfig(configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
+func Add(logger *slog.Logger, configPath, destination, via string) error {
+	return util.UpdateConfig(logger, configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
 		// Do we already have a route with this destination?
 		for _, routeConf := range conf.Routes {
 			if routeConf.Destination == destination {

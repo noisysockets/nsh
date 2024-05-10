@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -68,10 +69,12 @@ func main() {
 	loadConfig := func(c *cli.Context) error {
 		configPath := c.String("config")
 
+		logger.Debug("Loading config", slog.String("path", configPath))
+
 		configFile, err := os.Open(configPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				return fmt.Errorf("config file does not exist, run `nsh config init` to create one")
+				return fmt.Errorf("config file %q does not exist, run `nsh config init` to create one", configPath)
 			}
 
 			return fmt.Errorf("failed to open config file: %w", err)
@@ -87,10 +90,8 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:   "nsh",
-		Usage:  "The Noisy Sockets CLI",
-		Flags:  sharedFlags,
-		Before: initLogger,
+		Name:  "nsh",
+		Usage: "The Noisy Sockets CLI",
 		Commands: []*cli.Command{
 			{
 				Name:  "config",
@@ -100,6 +101,11 @@ func main() {
 						Name:  "init",
 						Usage: "Create a new configuration",
 						Flags: append([]cli.Flag{
+							&cli.StringFlag{
+								Name:    "name",
+								Aliases: []string{"n"},
+								Usage:   "The name of the peer",
+							},
 							&cli.IntFlag{
 								Name:    "listen-port",
 								Aliases: []string{"l"},
@@ -118,6 +124,7 @@ func main() {
 						Action: func(c *cli.Context) error {
 							return configcmd.Init(logger,
 								c.String("config"),
+								c.String("name"),
 								c.Int("listen-port"),
 								c.StringSlice("ip"))
 						},
@@ -136,6 +143,7 @@ func main() {
 						Before: initLogger,
 						Action: func(c *cli.Context) error {
 							return configcmd.Import(
+								logger,
 								c.String("config"),
 								c.String("input"))
 						},
@@ -177,10 +185,8 @@ func main() {
 				},
 			},
 			{
-				Name:   "peer",
-				Usage:  "Manage peers",
-				Flags:  sharedFlags,
-				Before: beforeAll(initLogger, loadConfig),
+				Name:  "peer",
+				Usage: "Manage peers",
 				Subcommands: []*cli.Command{
 					{
 						Name:  "add",
@@ -211,7 +217,8 @@ func main() {
 						Before: beforeAll(initLogger, loadConfig),
 						Action: func(c *cli.Context) error {
 							return peercmd.Add(
-								configPath,
+								logger,
+								c.String("config"),
 								c.String("name"),
 								c.String("public-key"),
 								c.String("endpoint"),
@@ -233,7 +240,8 @@ func main() {
 							}
 
 							return peercmd.Remove(
-								configPath,
+								logger,
+								c.String("config"),
 								c.Args().First(),
 							)
 						},
@@ -241,10 +249,8 @@ func main() {
 				},
 			},
 			{
-				Name:   "route",
-				Usage:  "Manage routes",
-				Flags:  sharedFlags,
-				Before: beforeAll(initLogger, loadConfig),
+				Name:  "route",
+				Usage: "Manage routes",
 				Subcommands: []*cli.Command{
 					{
 						Name:  "add",
@@ -266,7 +272,8 @@ func main() {
 						Before: beforeAll(initLogger, loadConfig),
 						Action: func(c *cli.Context) error {
 							return routecmd.Add(
-								configPath,
+								logger,
+								c.String("config"),
 								c.String("destination"),
 								c.String("via"),
 							)
@@ -286,7 +293,8 @@ func main() {
 							}
 
 							return routecmd.Remove(
-								configPath,
+								logger,
+								c.String("config"),
 								c.Args().First(),
 							)
 						},
@@ -294,11 +302,25 @@ func main() {
 				},
 			},
 			{
-				Name:   "shell",
-				Usage:  "Remote shell",
-				Flags:  sharedFlags,
-				Before: beforeAll(initLogger, loadConfig),
+				Name:  "shell",
+				Usage: "Remote shell",
 				Subcommands: []*cli.Command{
+					{
+						Name:      "connect",
+						Usage:     "Connect to a remote shell server",
+						Flags:     sharedFlags,
+						Args:      true,
+						ArgsUsage: "address",
+						Before:    beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							if c.Args().Len() != 1 {
+								_ = cli.ShowSubcommandHelp(c)
+								return fmt.Errorf("expected server address/port as argument")
+							}
+
+							return shellcmd.Connect(c.Context, logger, conf, c.Args().First())
+						},
+					},
 					{
 						Name:   "serve",
 						Usage:  "Start a remote shell server",
@@ -315,6 +337,11 @@ func main() {
 
 	if err := app.Run(os.Args); err != nil {
 		logger.Error("Error", slog.Any("error", err))
+
+		var e util.ExitError
+		if errors.As(err, &e) {
+			os.Exit(int(e))
+		}
 		os.Exit(1)
 	}
 }

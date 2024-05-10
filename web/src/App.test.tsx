@@ -14,25 +14,15 @@
  * under the License.
  */
 
-package route
+import { describe, it, expect } from "vitest";
 
-import (
-	"fmt"
-	"log/slog"
+// TODO: Write tests some tests.
+describe("something truthy and falsy", () => {
+  it("true to be true", () => {
+    expect(true).toBe(true);
+  });
 
-	"github.com/noisysockets/noisysockets/config/v1alpha1"
-	"github.com/noisysockets/nsh/internal/util"
-)
-
-func Remove(logger *slog.Logger, configPath, destination string) error {
-	return util.UpdateConfig(logger, configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
-		for i, routeConf := range conf.Routes {
-			if routeConf.Destination == destination {
-				conf.Routes = append(conf.Routes[:i], conf.Routes[i+1:]...)
-				return conf, nil
-			}
-		}
-
-		return nil, fmt.Errorf("route not found")
-	})
-}
+  it("false to be false", () => {
+    expect(false).toBe(false);
+  });
+});

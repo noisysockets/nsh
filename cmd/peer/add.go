@@ -18,6 +18,7 @@ package peer
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/noisysockets/noisysockets/config/v1alpha1"
 	"github.com/noisysockets/noisysockets/types"
@@ -25,8 +26,8 @@ import (
 	"github.com/noisysockets/nsh/internal/validate"
 )
 
-func Add(configPath, name, publicKey, endpoint string, ips []string) error {
-	return util.UpdateConfig(configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
+func Add(logger *slog.Logger, configPath, name, publicKey, endpoint string, ips []string) error {
+	return util.UpdateConfig(logger, configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
 		// Do we already have a peer with this name or public key?
 		for _, peerConf := range conf.Peers {
 			if peerConf.Name == name || peerConf.PublicKey == publicKey {
@@ -40,12 +41,14 @@ func Add(configPath, name, publicKey, endpoint string, ips []string) error {
 			return nil, fmt.Errorf("invalid public key: %w", err)
 		}
 
-		if err := validate.Endpoint(endpoint); err != nil {
-			return nil, fmt.Errorf("invalid endpoint: %w", err)
-		}
-
 		if err := validate.IPs(ips); err != nil {
 			return nil, fmt.Errorf("invalid IP address: %w", err)
+		}
+
+		if endpoint != "" {
+			if err := validate.Endpoint(endpoint); err != nil {
+				return nil, fmt.Errorf("invalid endpoint: %w", err)
+			}
 		}
 
 		// Add the new peer.

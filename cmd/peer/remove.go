@@ -18,13 +18,14 @@ package peer
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/noisysockets/noisysockets/config/v1alpha1"
 	"github.com/noisysockets/nsh/internal/util"
 )
 
-func Remove(configPath, nameOrPublicKey string) error {
-	return util.UpdateConfig(configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
+func Remove(logger *slog.Logger, configPath, nameOrPublicKey string) error {
+	return util.UpdateConfig(logger, configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
 		for i, peerConf := range conf.Peers {
 			if peerConf.Name == nameOrPublicKey || peerConf.PublicKey == nameOrPublicKey {
 				conf.Peers = append(conf.Peers[:i], conf.Peers[i+1:]...)

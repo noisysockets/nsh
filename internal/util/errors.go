@@ -14,25 +14,14 @@
  * under the License.
  */
 
-package route
+package util
 
-import (
-	"fmt"
-	"log/slog"
+import "fmt"
 
-	"github.com/noisysockets/noisysockets/config/v1alpha1"
-	"github.com/noisysockets/nsh/internal/util"
-)
+// ExitError is an error type that represents a shell exit status.
+// This will be returned when the parent process exits.
+type ExitError int
 
-func Remove(logger *slog.Logger, configPath, destination string) error {
-	return util.UpdateConfig(logger, configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
-		for i, routeConf := range conf.Routes {
-			if routeConf.Destination == destination {
-				conf.Routes = append(conf.Routes[:i], conf.Routes[i+1:]...)
-				return conf, nil
-			}
-		}
-
-		return nil, fmt.Errorf("route not found")
-	})
+func (e ExitError) Error() string {
+	return fmt.Sprintf("exit status %d", e)
 }

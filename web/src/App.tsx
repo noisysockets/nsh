@@ -58,18 +58,20 @@ const App = ({ wsURL }: AppProps): React.ReactElement => {
   useEffect(() => {
     if (!terminalIsOpen) {
       // TODO: handle terminal exits, displaying a message to the user.
-      client
-        .openTerminal(
-          terminalDimensions.columns,
-          terminalDimensions.rows,
-          ["TERM=xterm-256color"],
-          output,
-          input,
-        )
+      client.openTerminal(
+        terminalDimensions.columns,
+        terminalDimensions.rows,
+        ["TERM=xterm-256color"],
+        output,
+        input,
+      );
 
       setTerminalIsOpen(true);
     } else {
-      client.resizeTerminal(terminalDimensions.columns, terminalDimensions.rows);
+      client.resizeTerminal(
+        terminalDimensions.columns,
+        terminalDimensions.rows,
+      );
     }
   }, [client, terminalIsOpen, terminalDimensions, input, output]);
 

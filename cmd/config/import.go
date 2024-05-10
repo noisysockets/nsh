@@ -19,6 +19,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -27,7 +28,7 @@ import (
 	"github.com/noisysockets/nsh/internal/util"
 )
 
-func Import(configPath, wireGuardConfigPath string) error {
+func Import(logger *slog.Logger, configPath, wireGuardConfigPath string) error {
 	var r io.Reader
 	if wireGuardConfigPath == "-" {
 		r = os.Stdin
@@ -40,7 +41,7 @@ func Import(configPath, wireGuardConfigPath string) error {
 		r = wireGuardConfigFile
 	}
 
-	return util.UpdateConfig(configPath, func(_ *v1alpha1.Config) (*v1alpha1.Config, error) {
+	return util.UpdateConfig(logger, configPath, func(_ *v1alpha1.Config) (*v1alpha1.Config, error) {
 		conf, err := config.FromINI(r)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing WireGuard config: %w", err)

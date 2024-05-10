@@ -18,6 +18,7 @@ package util
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -27,8 +28,9 @@ import (
 )
 
 // UpdateConfig performs an atomic update on the given config file.
-func UpdateConfig(configPath string, update func(*v1alpha1.Config) (*v1alpha1.Config, error)) error {
-	lock := flock.New(configPath + ".lock")
+func UpdateConfig(logger *slog.Logger, configPath string, update func(*v1alpha1.Config) (*v1alpha1.Config, error)) error {
+	lockPath := configPath + ".lock"
+	lock := flock.New(lockPath)
 	locked, err := lock.TryLock()
 	if err != nil {
 		return fmt.Errorf("error acquiring lock: %w", err)
@@ -36,7 +38,15 @@ func UpdateConfig(configPath string, update func(*v1alpha1.Config) (*v1alpha1.Co
 	if !locked {
 		return fmt.Errorf("config file is locked by another process")
 	}
-	defer lock.Unlock()
+	defer func() {
+		if err := lock.Unlock(); err != nil {
+			logger.Error("Error releasing lock", slog.Any("error", err))
+		}
+
+		if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
+			logger.Error("Error removing lock file", slog.Any("error", err))
+		}
+	}()
 
 	configFile, err := os.Open(configPath)
 	if err != nil {
