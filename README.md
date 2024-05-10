@@ -9,6 +9,7 @@ The first of these apps is the [Noisy Sockets Shell](https://github.com/noisysoc
 ## Screenshot
 
 <img src="https://github.com/noisysockets/nsh/raw/main/docs/terminal_screenshot.png" width="450" alt="Terminal Screenshot" />
+
 *Showing a terminal session using the in-browser client.*
 
 ## Getting Started
