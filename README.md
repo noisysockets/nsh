@@ -6,7 +6,7 @@ The Noisy Sockets CLI can be used to configure and manage userspace WireGuard co
 
 The first of these apps is the [Noisy Sockets Shell](https://github.com/noisysockets/shell) which is a secure, remote shell that uses WireGuard for authentication and encryption. The shell is accessible via a terminal or a web browser.
 
-## Screenshots
+## Screenshot
 
 <img src="https://github.com/noisysockets/nsh/raw/main/docs/terminal_screenshot.png" width="450" alt="Terminal Screenshot" />
 *Showing a terminal session using the in-browser client.*
