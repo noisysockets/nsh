@@ -24,8 +24,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -42,7 +40,7 @@ import (
 func Connect(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config, address string) error {
 	logger.Debug("Opening WireGuard network")
 
-	net, err := noisysockets.NewNetwork(logger, conf)
+	net, err := noisysockets.OpenNetwork(logger, conf)
 	if err != nil {
 		return fmt.Errorf("failed to open WireGuard network: %w", err)
 	}
@@ -83,7 +81,7 @@ func Connect(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config, ad
 	}()
 
 	// Create a pipe so we can make stdin non-blocking.
-	input, inWriter, err := os.Pipe()
+	input, inputWriter, err := os.Pipe()
 	if err != nil {
 		return fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
@@ -92,14 +90,14 @@ func Connect(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config, ad
 	// Pump stdin into the pipe (blocking in a seperate goroutine).
 	// We can't use errgroup here as context cancellation is not available.
 	go func() {
-		defer inWriter.Close()
+		defer inputWriter.Close()
 
-		if _, err := stdio.Copy(inWriter, os.Stdin); err != nil && !errors.Is(err, io.ErrClosedPipe) {
+		if _, err := stdio.Copy(inputWriter, os.Stdin); err != nil && !errors.Is(err, io.ErrClosedPipe) {
 			logger.Error("Failed to read from stdin", slog.Any("error", err))
 		}
 	}()
 
-	if err := syscall.SetNonblock(int(input.Fd()), true); err != nil {
+	if err := io.SetNonblock(input); err != nil {
 		return fmt.Errorf("failed to set stdin file descriptor to non-blocking: %w", err)
 	}
 
@@ -154,16 +152,18 @@ func Connect(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config, ad
 		return fmt.Errorf("failed to open shell: %w", err)
 	}
 
-	// Listen for window resize events.
-	windowChange := make(chan os.Signal, 1)
-	signal.Notify(windowChange, syscall.SIGWINCH)
+	// Listen for window change events.
+	windowChangeEv, err := listenForWindowChangeEvents(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to listen for window change events: %w", err)
+	}
 
 	g.Go(func() error {
 		for {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
-			case <-windowChange:
+			case <-windowChangeEv:
 				columns, rows, err := term.GetSize(int(os.Stdin.Fd()))
 				if err != nil {
 					return fmt.Errorf("failed to get terminal size: %w", err)

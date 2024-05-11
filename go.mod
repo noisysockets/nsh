@@ -7,8 +7,8 @@ require (
 	github.com/gofrs/flock v0.8.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/itchyny/gojq v0.12.15
-	github.com/noisysockets/noisysockets v0.17.4
-	github.com/noisysockets/shell v0.4.0
+	github.com/noisysockets/noisysockets v0.18.0
+	github.com/noisysockets/shell v0.4.2
 	github.com/rs/cors v1.11.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/sync v0.7.0
@@ -28,6 +28,7 @@ require (
 	github.com/miekg/dns v1.1.59 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/noisysockets/netstack v0.6.0 // indirect
+	github.com/rdleal/intervalst v1.4.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
@@ -38,4 +39,5 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
+	lukechampine.com/uint128 v1.3.0 // indirect
 )

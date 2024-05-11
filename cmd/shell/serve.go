@@ -1,3 +1,5 @@
+//go:build !windows
+
 /*
  * Copyright 2024 Damian Peckett <damian@pecke.tt>
  *
@@ -38,7 +40,7 @@ import (
 func Serve(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config) error {
 	logger.Debug("Opening WireGuard network")
 
-	net, err := noisysockets.NewNetwork(logger, conf)
+	net, err := noisysockets.OpenNetwork(logger, conf)
 	if err != nil {
 		return fmt.Errorf("failed to open WireGuard network: %w", err)
 	}

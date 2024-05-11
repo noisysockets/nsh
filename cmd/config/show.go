@@ -38,7 +38,7 @@ func Show(ctx context.Context, conf *v1alpha1.Config, queryStr string) error {
 	// Add a custom function to the jq query to convert a private key to a public key.
 	code, err := gojq.Compile(query, gojq.WithFunction("public", 1, 1, func(_ any, xs []any) any {
 		var privateKey types.NoisePrivateKey
-		if err := privateKey.FromString(fmt.Sprintf("%v", xs[0])); err != nil {
+		if err := privateKey.UnmarshalText([]byte(fmt.Sprintf("%v", xs[0]))); err != nil {
 			return fmt.Errorf("failed to parse private key: %w", err)
 		}
 

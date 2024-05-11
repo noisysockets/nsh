@@ -7,11 +7,13 @@ all:
   COPY (+build/nsh --GOARCH=arm64) ./dist/nsh-linux-arm64
   COPY (+build/nsh --GOOS=darwin --GOARCH=amd64) ./dist/nsh-darwin-amd64
   COPY (+build/nsh --GOOS=darwin --GOARCH=arm64) ./dist/nsh-darwin-arm64
+  COPY (+build/nsh --GOOS=windows --GOARCH=amd64) ./dist/nsh-windows-amd64.exe
   RUN cd dist && find . -type f -exec sha256sum {} \; >> ../checksums.txt
   SAVE ARTIFACT ./dist/nsh-linux-amd64 AS LOCAL dist/nsh-linux-amd64
   SAVE ARTIFACT ./dist/nsh-linux-arm64 AS LOCAL dist/nsh-linux-arm64
   SAVE ARTIFACT ./dist/nsh-darwin-amd64 AS LOCAL dist/nsh-darwin-amd64
   SAVE ARTIFACT ./dist/nsh-darwin-arm64 AS LOCAL dist/nsh-darwin-arm64
+  SAVE ARTIFACT ./dist/nsh-windows-amd64.exe AS LOCAL dist/nsh-windows-amd64.exe
   SAVE ARTIFACT ./checksums.txt AS LOCAL dist/checksums.txt
 
 build:

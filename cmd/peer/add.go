@@ -37,7 +37,7 @@ func Add(logger *slog.Logger, configPath, name, publicKey, endpoint string, ips 
 
 		// Validate the public key.
 		var pk types.NoisePublicKey
-		if err := pk.FromString(publicKey); err != nil {
+		if err := pk.UnmarshalText([]byte(publicKey)); err != nil {
 			return nil, fmt.Errorf("invalid public key: %w", err)
 		}
 
