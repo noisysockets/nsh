@@ -26,6 +26,8 @@ import (
 	"github.com/noisysockets/noisysockets/config/v1alpha1"
 )
 
+// When windows conpty support is added to creack/pty, this can be removed.
+// See: https://github.com/creack/pty/pull/155
 func Serve(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config) error {
 	return fmt.Errorf("serve is not supported on Windows")
 }
