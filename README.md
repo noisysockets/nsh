@@ -77,11 +77,15 @@ xdg-open http://172.21.248.1
 
 ## License
 
-The Noisy Sockets CLI is licensed under the [Noisy Sockets Source License 1.0 (NSSL-1.0)](./LICENSE). NSSL-1.0 is a source-available license inspired by the [FSL-1.1](https://fsl.software/).
+The Noisy Sockets CLI is dual licensed under the [Noisy Sockets Source License 1.0 (NSSL-1.0)](./LICENSE-NSSL-1.0.txt)
+and the [Affero General Public License v3 (AGPL-3.0)](./LICENSE-AGPL-3.0.txt).
 
-You are welcome to use the Noisy Sockets CLI for your own internal use, but developing a competing product is not permitted.
+The NSSL-1.0 is a source-available license derived from the [FSL-1.1](https://fsl.software) with the following changes:
 
-See [LICENSE](./LICENSE) for the full license text.
+- Code will become FOSS after 4 years rather than 2 years.
+- The future license is MPL-2.0 (a weak copyleft) rather than Apache-2.0.
+
+You are welcome to use the Noisy Sockets CLI under the terms of either license.
 
 ## Credits
 
