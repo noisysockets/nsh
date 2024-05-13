@@ -1,4 +1,5 @@
 # nsh
+[简体中文](README.zh.md)
 
 The [Noisy Sockets](https://github.com/noisysockets/noisysockets) CLI.
 
@@ -65,7 +66,7 @@ nsh shell connect -c client.yaml server
 
 #### Using Browser
 
-When using the wg kernel module, you will need t connect to the shell server
+When using the wg kernel module, you will need to connect to the shell server
 using the IP address (as we haven't yet implemented an integrated DNS resolver).
 
 ```sh
