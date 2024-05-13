@@ -1,17 +1,10 @@
+// SPDX-License-Identifier: MPL-2.0
 /*
- * Copyright 2024 Damian Peckett <damian@pecke.tt>
+ * Copyright (C) 2024 The Noisy Sockets Authors.
  *
- * Licensed under the Noisy Sockets Source License 1.0 (NSSL-1.0); you may not
- * use this file except in compliance with the License. You may obtain a copy
- * of the License at
- *
- * https://github.com/noisysockets/nsh/blob/main/LICENSE
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 package shell
@@ -28,7 +21,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/noisysockets/noisysockets"
-	"github.com/noisysockets/noisysockets/config/v1alpha1"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	"github.com/noisysockets/nsh/internal/util"
 	"github.com/noisysockets/shell"
 	"github.com/noisysockets/shell/env"
@@ -37,7 +30,7 @@ import (
 	"golang.org/x/term"
 )
 
-func Connect(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config, address string) error {
+func Connect(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config, address string) error {
 	logger.Debug("Opening WireGuard network")
 
 	net, err := noisysockets.OpenNetwork(logger, conf)
@@ -54,7 +47,7 @@ func Connect(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config, ad
 		HandshakeTimeout: 45 * time.Second,
 	}
 
-	urlStr := fmt.Sprintf("ws://%s/ws", address)
+	urlStr := fmt.Sprintf("ws://%s/shell/ws", address)
 	ws, _, err := dialer.Dial(urlStr, http.Header{
 		"Origin": []string{fmt.Sprintf("http://%s", address)},
 	})

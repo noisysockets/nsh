@@ -7,8 +7,9 @@ require (
 	github.com/gofrs/flock v0.8.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/itchyny/gojq v0.12.15
-	github.com/noisysockets/noisysockets v0.18.0
-	github.com/noisysockets/shell v0.4.2
+	github.com/miekg/dns v1.1.59
+	github.com/noisysockets/noisysockets v0.20.0
+	github.com/noisysockets/shell v0.5.0
 	github.com/rs/cors v1.11.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/sync v0.7.0
@@ -25,7 +26,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/miekg/dns v1.1.59 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/noisysockets/netstack v0.6.0 // indirect
 	github.com/rdleal/intervalst v1.4.0 // indirect

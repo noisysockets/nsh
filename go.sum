@@ -37,10 +37,10 @@ github.com/neilotoole/slogt v1.1.0 h1:c7qE92sq+V0yvCuaxph+RQ2jOKL61c4hqS1Bv9W7FZ
 github.com/neilotoole/slogt v1.1.0/go.mod h1:RCrGXkPc/hYybNulqQrMHRtvlQ7F6NktNVLuLwk6V+w=
 github.com/noisysockets/netstack v0.6.0 h1:KNXPSEXLbB6ulUEvOsMiNSBTu93l40nO/X5utXlUTS4=
 github.com/noisysockets/netstack v0.6.0/go.mod h1:tt7ze5obpFYDX9aIygoEb+6p5q1FNbIfg2KcFiX65bc=
-github.com/noisysockets/noisysockets v0.18.0 h1:6buWIWIY9nvIW1MDXCPTgT46tRnhAdduA1hcswQfdUM=
-github.com/noisysockets/noisysockets v0.18.0/go.mod h1:YRsnSRAGn4Sjmg8H+PFsfVHaiAsBBWzlH/9Ua1NFRXw=
-github.com/noisysockets/shell v0.4.2 h1:nrlYpfxfdWoVGNxeRd9NIvRmq1W+uvAZsrAuhkdX6AY=
-github.com/noisysockets/shell v0.4.2/go.mod h1:W141FiI40PVd1M2t3WRK8nkVIXt6eHcTTotRGOdkjF8=
+github.com/noisysockets/noisysockets v0.20.0 h1:jRJQqITuxGT14owKN+QncbUF0OntV8yTjzPWWdwG8H8=
+github.com/noisysockets/noisysockets v0.20.0/go.mod h1:YRsnSRAGn4Sjmg8H+PFsfVHaiAsBBWzlH/9Ua1NFRXw=
+github.com/noisysockets/shell v0.5.0 h1:Ik22zzS5qRoalzr9814ROrxcE6EgZUI8ZxxHo9LmJgA=
+github.com/noisysockets/shell v0.5.0/go.mod h1:W141FiI40PVd1M2t3WRK8nkVIXt6eHcTTotRGOdkjF8=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rdleal/intervalst v1.4.0 h1:DWrcNJ9kxPOYnXxExrQkta1xsKFRN0rTOVXkBDJzVYg=

@@ -1,19 +1,12 @@
 //go:build !windows
 
+// SPDX-License-Identifier: MPL-2.0
 /*
- * Copyright 2024 Damian Peckett <damian@pecke.tt>
+ * Copyright (C) 2024 The Noisy Sockets Authors.
  *
- * Licensed under the Noisy Sockets Source License 1.0 (NSSL-1.0); you may not
- * use this file except in compliance with the License. You may obtain a copy
- * of the License at
- *
- * https://github.com/noisysockets/nsh/blob/main/LICENSE
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 package shell
@@ -31,13 +24,14 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/noisysockets/noisysockets"
-	"github.com/noisysockets/noisysockets/config/v1alpha1"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	"github.com/noisysockets/nsh/internal/middleware"
 	"github.com/noisysockets/nsh/web"
 	"github.com/noisysockets/shell"
 	"github.com/rs/cors"
 )
 
-func Serve(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config) error {
+func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config) error {
 	logger.Debug("Opening WireGuard network")
 
 	net, err := noisysockets.OpenNetwork(logger, conf)
@@ -84,8 +78,9 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config) erro
 	mux := http.NewServeMux()
 
 	mux.Handle("/", web.Handler())
+	mux.Handle("/shell/", http.StripPrefix("/shell", web.Handler()))
 
-	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/shell/ws", func(w http.ResponseWriter, r *http.Request) {
 		logger := logger.With(slog.String("remote_addr", r.RemoteAddr))
 
 		logger.Info("Handling connection")
@@ -111,8 +106,15 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config) erro
 		}
 	})
 
+	middlewares := []middleware.Middleware{
+		middleware.Recover(logger),
+		middleware.FrameOptions(middleware.FrameOptionDeny),
+		middleware.ContentSecurityPolicy,
+		corsHandler.Handler,
+	}
+
 	srv := &http.Server{
-		Handler: mux,
+		Handler: middleware.Chain(middlewares...)(mux),
 	}
 
 	// Capture the signal to close the listener
@@ -127,9 +129,9 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *v1alpha1.Config) erro
 		}
 	}()
 
-	urlStr := fmt.Sprintf("http://%s", lisAddrPort.String())
+	urlStr := fmt.Sprintf("http://%s/shell/", lisAddrPort.String())
 	if hostname != "" {
-		urlStr = fmt.Sprintf("http://%s:%d", hostname, lisAddrPort.Port())
+		urlStr = fmt.Sprintf("http://%s:%d/shell/", hostname, lisAddrPort.Port())
 	}
 
 	logger.Info("Listening for shell connections on WireGuard network", slog.String("url", urlStr))

@@ -1,17 +1,10 @@
+// SPDX-License-Identifier: MPL-2.0
 /*
- * Copyright 2024 Damian Peckett <damian@pecke.tt>
+ * Copyright (C) 2024 The Noisy Sockets Authors.
  *
- * Licensed under the Noisy Sockets Source License 1.0 (NSSL-1.0); you may not
- * use this file except in compliance with the License. You may obtain a copy
- * of the License at
- *
- * https://github.com/noisysockets/nsh/blob/main/LICENSE
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 package main
@@ -24,8 +17,9 @@ import (
 
 	"github.com/adrg/xdg"
 	"github.com/noisysockets/noisysockets/config"
-	"github.com/noisysockets/noisysockets/config/v1alpha1"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	configcmd "github.com/noisysockets/nsh/cmd/config"
+	dnscmd "github.com/noisysockets/nsh/cmd/dns"
 	peercmd "github.com/noisysockets/nsh/cmd/peer"
 	routecmd "github.com/noisysockets/nsh/cmd/route"
 	shellcmd "github.com/noisysockets/nsh/cmd/shell"
@@ -37,7 +31,7 @@ import (
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	var conf *v1alpha1.Config
+	var conf *latestconfig.Config
 	configPath, err := xdg.ConfigFile("nsh/noisysockets.yaml")
 	if err != nil {
 		logger.Error("Error getting config file path", slog.Any("error", err))
@@ -328,6 +322,21 @@ func main() {
 						Before: beforeAll(initLogger, loadConfig),
 						Action: func(c *cli.Context) error {
 							return shellcmd.Serve(c.Context, logger, conf)
+						},
+					},
+				},
+			},
+			{
+				Name:  "dns",
+				Usage: "Domain Name System",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "serve",
+						Usage:  "Start a DNS server",
+						Flags:  sharedFlags,
+						Before: beforeAll(initLogger, loadConfig),
+						Action: func(c *cli.Context) error {
+							return dnscmd.Serve(c.Context, logger, conf)
 						},
 					},
 				},

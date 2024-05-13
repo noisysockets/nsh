@@ -72,20 +72,8 @@ using the IP address (as we haven't yet implemented an integrated DNS resolver).
 sudo nsh config export -c client.yaml -o /etc/wireguard/nsh0.conf
 sudo wg-quick up nsh0
 
-xdg-open http://172.21.248.1
+xdg-open http://172.21.248.1/shell/
 ```
-
-## License
-
-The Noisy Sockets CLI is dual licensed under the [Noisy Sockets Source License 1.0 (NSSL-1.0)](./LICENSE-NSSL-1.0.txt)
-and the [Affero General Public License v3 (AGPL-3.0)](./LICENSE-AGPL-3.0.txt).
-
-The NSSL-1.0 is a source-available license derived from the [FSL-1.1](https://fsl.software) with the following changes:
-
-- Code will become FOSS after 4 years rather than 2 years.
-- The future license is MPL-2.0 (a weak copyleft) rather than Apache-2.0.
-
-You are welcome to use the Noisy Sockets CLI under the terms of either license.
 
 ## Credits
 

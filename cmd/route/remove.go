@@ -1,17 +1,10 @@
+// SPDX-License-Identifier: MPL-2.0
 /*
- * Copyright 2024 Damian Peckett <damian@pecke.tt>
+ * Copyright (C) 2024 The Noisy Sockets Authors.
  *
- * Licensed under the Noisy Sockets Source License 1.0 (NSSL-1.0); you may not
- * use this file except in compliance with the License. You may obtain a copy
- * of the License at
- *
- * https://github.com/noisysockets/nsh/blob/main/LICENSE
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 package route
@@ -20,12 +13,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/noisysockets/noisysockets/config/v1alpha1"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	"github.com/noisysockets/nsh/internal/util"
 )
 
 func Remove(logger *slog.Logger, configPath, destination string) error {
-	return util.UpdateConfig(logger, configPath, func(conf *v1alpha1.Config) (*v1alpha1.Config, error) {
+	return util.UpdateConfig(logger, configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
 		for i, routeConf := range conf.Routes {
 			if routeConf.Destination == destination {
 				conf.Routes = append(conf.Routes[:i], conf.Routes[i+1:]...)

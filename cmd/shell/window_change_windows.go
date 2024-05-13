@@ -1,19 +1,12 @@
 //go:build windows
 
+// SPDX-License-Identifier: MPL-2.0
 /*
- * Copyright 2024 Damian Peckett <damian@pecke.tt>
+ * Copyright (C) 2024 The Noisy Sockets Authors.
  *
- * Licensed under the Noisy Sockets Source License 1.0 (NSSL-1.0); you may not
- * use this file except in compliance with the License. You may obtain a copy
- * of the License at
- *
- * https://github.com/noisysockets/nsh/blob/main/LICENSE
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 package shell
@@ -26,7 +19,8 @@ import (
 	"golang.org/x/term"
 )
 
-// There really isn't a good way to listen for window change events on Windows.
+// There really isn't a good way to listen for window change events on Windows,
+// so poll window size every second or so.
 // See: https://github.com/microsoft/terminal/issues/305
 func listenForWindowChangeEvents(ctx context.Context) (<-chan os.Signal, error) {
 	prevColumns, prevRows, err := term.GetSize(int(os.Stdin.Fd()))
