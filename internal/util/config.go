@@ -10,6 +10,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -29,7 +30,7 @@ func UpdateConfig(logger *slog.Logger, configPath string, update func(*latestcon
 		return fmt.Errorf("error acquiring lock: %w", err)
 	}
 	if !locked {
-		return fmt.Errorf("config file is locked by another process")
+		return errors.New("config file is locked by another process")
 	}
 	defer func() {
 		if err := lock.Unlock(); err != nil {

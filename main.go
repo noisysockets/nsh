@@ -19,10 +19,12 @@ import (
 	"github.com/noisysockets/noisysockets/config"
 	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	configcmd "github.com/noisysockets/nsh/cmd/config"
-	dnscmd "github.com/noisysockets/nsh/cmd/dns"
 	peercmd "github.com/noisysockets/nsh/cmd/peer"
 	routecmd "github.com/noisysockets/nsh/cmd/route"
+	servecmd "github.com/noisysockets/nsh/cmd/serve"
 	shellcmd "github.com/noisysockets/nsh/cmd/shell"
+	"github.com/noisysockets/nsh/internal/constants"
+	"github.com/noisysockets/nsh/internal/service"
 	"github.com/noisysockets/nsh/internal/util"
 
 	"github.com/urfave/cli/v2"
@@ -84,8 +86,9 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:  "nsh",
-		Usage: "The Noisy Sockets CLI",
+		Name:    "nsh",
+		Usage:   "The Noisy Sockets CLI",
+		Version: constants.Version,
 		Commands: []*cli.Command{
 			{
 				Name:  "config",
@@ -113,6 +116,11 @@ func main() {
 								// This CIDR is chosen to reduce the likelihood of conflicts.
 								Value: cli.NewStringSlice("172.21.248.1"),
 							},
+							&cli.StringFlag{
+								Name:    "domain",
+								Aliases: []string{"d"},
+								Usage:   "The domain name to use for DNS",
+							},
 						}, sharedFlags...),
 						Before: initLogger,
 						Action: func(c *cli.Context) error {
@@ -120,7 +128,8 @@ func main() {
 								c.String("config"),
 								c.String("name"),
 								c.Int("listen-port"),
-								c.StringSlice("ip"))
+								c.StringSlice("ip"),
+								c.String("domain"))
 						},
 					},
 					{
@@ -170,7 +179,7 @@ func main() {
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								_ = cli.ShowSubcommandHelp(c)
-								return fmt.Errorf("expected jq syntax query as argument")
+								return errors.New("expected jq syntax query as argument")
 							}
 
 							return configcmd.Show(c.Context, conf, c.Args().First())
@@ -230,7 +239,7 @@ func main() {
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								_ = cli.ShowSubcommandHelp(c)
-								return fmt.Errorf("expected name or public-key as argument")
+								return errors.New("expected name or public-key as argument")
 							}
 
 							return peercmd.Remove(
@@ -244,7 +253,7 @@ func main() {
 			},
 			{
 				Name:  "route",
-				Usage: "Manage routes",
+				Usage: "Manage network routes",
 				Subcommands: []*cli.Command{
 					{
 						Name:  "add",
@@ -283,7 +292,7 @@ func main() {
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								_ = cli.ShowSubcommandHelp(c)
-								return fmt.Errorf("expected destination as argument")
+								return errors.New("expected destination as argument")
 							}
 
 							return routecmd.Remove(
@@ -296,49 +305,53 @@ func main() {
 				},
 			},
 			{
-				Name:  "shell",
-				Usage: "Remote shell",
-				Subcommands: []*cli.Command{
-					{
-						Name:      "connect",
-						Usage:     "Connect to a remote shell server",
-						Flags:     sharedFlags,
-						Args:      true,
-						ArgsUsage: "address",
-						Before:    beforeAll(initLogger, loadConfig),
-						Action: func(c *cli.Context) error {
-							if c.Args().Len() != 1 {
-								_ = cli.ShowSubcommandHelp(c)
-								return fmt.Errorf("expected server address/port as argument")
-							}
+				Name:  "serve",
+				Usage: "Start a server",
+				Flags: append([]cli.Flag{
+					&cli.BoolFlag{
+						Name:  "dns",
+						Usage: "Enable DNS service",
+					},
+					&cli.BoolFlag{
+						Name:  "shell",
+						Usage: "Enable remote shell service",
+					},
+				}, sharedFlags...),
+				Before: beforeAll(initLogger, loadConfig),
+				Action: func(c *cli.Context) error {
+					var services []service.Service
 
-							return shellcmd.Connect(c.Context, logger, conf, c.Args().First())
-						},
-					},
-					{
-						Name:   "serve",
-						Usage:  "Start a remote shell server",
-						Flags:  sharedFlags,
-						Before: beforeAll(initLogger, loadConfig),
-						Action: func(c *cli.Context) error {
-							return shellcmd.Serve(c.Context, logger, conf)
-						},
-					},
+					if c.Bool("dns") {
+						services = append(services, service.DNS(logger))
+					}
+
+					if c.Bool("shell") {
+						services = append(services, service.Shell(logger))
+					}
+
+					// If all services are disabled, then throw an error.
+					if len(services) == 0 {
+						_ = cli.ShowSubcommandHelp(c)
+						return errors.New("at least one service must be enabled")
+					}
+
+					return servecmd.Serve(c.Context, logger, conf, services)
 				},
 			},
 			{
-				Name:  "dns",
-				Usage: "Domain Name System",
-				Subcommands: []*cli.Command{
-					{
-						Name:   "serve",
-						Usage:  "Start a DNS server",
-						Flags:  sharedFlags,
-						Before: beforeAll(initLogger, loadConfig),
-						Action: func(c *cli.Context) error {
-							return dnscmd.Serve(c.Context, logger, conf)
-						},
-					},
+				Name:      "shell",
+				Usage:     "Connect to a remote shell server",
+				Flags:     sharedFlags,
+				Args:      true,
+				ArgsUsage: "address",
+				Before:    beforeAll(initLogger, loadConfig),
+				Action: func(c *cli.Context) error {
+					if c.Args().Len() != 1 {
+						_ = cli.ShowSubcommandHelp(c)
+						return errors.New("expected server address/port as argument")
+					}
+
+					return shellcmd.Connect(c.Context, logger, conf, c.Args().First())
 				},
 			},
 		},

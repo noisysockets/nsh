@@ -4,7 +4,7 @@ The [Noisy Sockets](https://github.com/noisysockets/noisysockets) CLI.
 
 The Noisy Sockets CLI can be used to configure and manage userspace WireGuard connections. Over time it will grow to include a collection of WireGuard powered apps.
 
-The first of these apps is the [Noisy Sockets Shell](https://github.com/noisysockets/shell) which is a secure, remote shell that uses WireGuard for authentication and encryption. The shell is accessible via a terminal or a web browser.
+The first of these apps is the Noisy Sockets Shell which is a secure, remote shell that uses WireGuard for authentication and encryption. The shell is accessible via a terminal or a web browser.
 
 ## Screenshot
 
@@ -49,7 +49,7 @@ nsh peer add -c client.yaml \
 In another tab, start the server.
 
 ```sh
-nsh shell serve -c server.yaml
+nsh serve -c server.yaml --dns --shell
 ```
 
 ### Connect to Server
@@ -60,19 +60,41 @@ You can connect to the shell server by its hostname, or the IP address. In the
 following example, we will connect to the server using the hostname.
 
 ```sh
-nsh shell connect -c client.yaml server
+nsh shell -c client.yaml server
 ```
 
 #### Using Browser
 
-When using the wg kernel module, you will need t connect to the shell server
-using the IP address (as we haven't yet implemented an integrated DNS resolver).
+##### Create WireGuard interface
 
 ```sh
 sudo nsh config export -c client.yaml -o /etc/wireguard/nsh0.conf
 sudo wg-quick up nsh0
+```
 
-xdg-open http://172.21.248.1/shell/
+##### Configure DNS
+
+To resolve the server hostname, you will need to configure the DNS resolver.
+
+For resolvconf (Debian/Ubuntu):
+
+```sh
+sudo grep -q "nameserver 172.21.248.1" /etc/resolvconf/resolv.conf.d/tail || echo "nameserver 172.21.248.1" | sudo tee -a /etc/resolvconf/resolv.conf.d/tail > /dev/null
+sudo resolvconf -u
+```
+
+For systemd-resolved (RHEL/CentOS):
+
+```sh
+sudo resolvectl --interface nsh0 --set-dns 172.21.248.1 --set-domain my.nzzy.net.
+```
+
+##### Open Shell
+
+Open the following URL in your browser:
+
+```sh
+xdg-open http://server.my.nzzy.net/shell/
 ```
 
 ## Credits

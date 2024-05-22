@@ -10,7 +10,7 @@
 package route
 
 import (
-	"fmt"
+	"errors"
 	"log/slog"
 
 	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
@@ -26,6 +26,6 @@ func Remove(logger *slog.Logger, configPath, destination string) error {
 			}
 		}
 
-		return nil, fmt.Errorf("route not found")
+		return nil, errors.New("route not found")
 	})
 }

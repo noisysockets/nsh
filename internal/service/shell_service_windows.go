@@ -9,18 +9,26 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package shell
+package service
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	"github.com/noisysockets/network"
 )
+
+// shellService is a remote shell service.
+type shellService struct{}
+
+// Shell returns a new remote shell service.
+func Shell(_ *slog.Logger) *shellService {
+	return &shellService{}
+}
 
 // When windows conpty support is added to creack/pty, this can be removed.
 // See: https://github.com/creack/pty/pull/155
-func Serve(_ context.Context, _ *slog.Logger, _ *latestconfig.Config) error {
-	return fmt.Errorf("serve is not supported on Windows")
+func (s *shellService) Serve(_ context.Context, _ network.Network) error {
+	return errors.New("shell service is not supported on Windows")
 }

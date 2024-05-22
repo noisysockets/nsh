@@ -10,6 +10,7 @@
 package peer
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -24,7 +25,7 @@ func Add(logger *slog.Logger, configPath, name, publicKey, endpoint string, ips 
 		// Do we already have a peer with this name or public key?
 		for _, peerConf := range conf.Peers {
 			if peerConf.Name == name || peerConf.PublicKey == publicKey {
-				return nil, fmt.Errorf("peer already exists")
+				return nil, errors.New("peer already exists")
 			}
 		}
 

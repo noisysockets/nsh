@@ -9,38 +9,43 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package shell
+package service
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	stdnet "net"
 	"net/http"
 	"net/netip"
-	"os"
-	"os/signal"
-	"syscall"
+	"strings"
 
 	"github.com/gorilla/websocket"
-	"github.com/noisysockets/noisysockets"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	"github.com/miekg/dns"
+	"github.com/noisysockets/network"
 	"github.com/noisysockets/nsh/internal/middleware"
 	"github.com/noisysockets/nsh/web"
+	resolverutil "github.com/noisysockets/resolver/util"
 	"github.com/noisysockets/shell"
 	"github.com/rs/cors"
 )
 
-func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config) error {
-	logger.Debug("Opening WireGuard network")
+// shellService is a remote shell service.
+type shellService struct {
+	logger *slog.Logger
+}
 
-	net, err := noisysockets.OpenNetwork(logger, conf)
-	if err != nil {
-		return fmt.Errorf("failed to open WireGuard network: %w", err)
+// Shell returns a new remote shell service.
+func Shell(logger *slog.Logger) *shellService {
+	return &shellService{
+		logger: logger,
 	}
-	defer net.Close()
+}
 
-	logger.Debug("Binding to http port")
+// Serve starts the shell service.
+func (s *shellService) Serve(ctx context.Context, net network.Network) error {
+	s.logger.Debug("Binding to http port")
 
 	lis, err := net.Listen("tcp", ":80")
 	if err != nil {
@@ -62,9 +67,21 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config) 
 	}
 
 	if hostname != "" {
-		allowedOrigins = append(allowedOrigins,
-			fmt.Sprintf("http://%s", hostname),
-			fmt.Sprintf("http://%s:%d", hostname, lisAddrPort.Port()))
+		domain, err := net.Domain()
+		if err != nil {
+			return fmt.Errorf("failed to get network domain: %w", err)
+		}
+
+		names := []string{hostname, strings.TrimSuffix(resolverutil.Join(hostname, domain), ".")}
+
+		for _, name := range names {
+			allowedOrigins = append(allowedOrigins,
+				fmt.Sprintf("http://%s", name),
+				fmt.Sprintf("http://%s:%d", name, lisAddrPort.Port()),
+				fmt.Sprintf("http://%s", dns.Fqdn(name)),
+				fmt.Sprintf("http://%s:%d", dns.Fqdn(name), lisAddrPort.Port()),
+			)
+		}
 	}
 
 	corsHandler := cors.New(cors.Options{
@@ -81,7 +98,7 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config) 
 	mux.Handle("/shell/", http.StripPrefix("/shell", web.Handler()))
 
 	mux.HandleFunc("/shell/ws", func(w http.ResponseWriter, r *http.Request) {
-		logger := logger.With(slog.String("remote_addr", r.RemoteAddr))
+		logger := s.logger.With(slog.String("remoteAddr", r.RemoteAddr))
 
 		logger.Info("Handling connection")
 
@@ -107,25 +124,24 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config) 
 	})
 
 	middlewares := []middleware.Middleware{
-		middleware.Recover(logger),
+		middleware.Recover(s.logger),
 		middleware.FrameOptions(middleware.FrameOptionDeny),
 		middleware.ContentSecurityPolicy,
 		corsHandler.Handler,
 	}
 
 	srv := &http.Server{
+		BaseContext: func(_ stdnet.Listener) context.Context {
+			return ctx
+		},
 		Handler: middleware.Chain(middlewares...)(mux),
 	}
 
-	// Capture the signal to close the listener
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-
 	go func() {
-		<-sig
+		<-ctx.Done()
 
 		if err := srv.Close(); err != nil {
-			logger.Error("Failed to close server", slog.Any("error", err))
+			s.logger.Error("Failed to close server", slog.Any("error", err))
 		}
 	}()
 
@@ -134,9 +150,8 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config) 
 		urlStr = fmt.Sprintf("http://%s:%d/shell/", hostname, lisAddrPort.Port())
 	}
 
-	logger.Info("Listening for shell connections on WireGuard network", slog.String("url", urlStr))
+	s.logger.Info("Listening for shell connections on WireGuard network", slog.String("url", urlStr))
 
-	// Serve connections.
 	if err := srv.Serve(lis); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("failed to serve: %w", err)
 	}

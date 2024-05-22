@@ -20,7 +20,8 @@ import (
 	"github.com/noisysockets/nsh/internal/validate"
 )
 
-func Init(logger *slog.Logger, configPath string, hostname string, listenPort int, ips []string) error {
+func Init(logger *slog.Logger, configPath string, hostname string,
+	listenPort int, ips []string, domain string) error {
 	if hostname == "" {
 		var err error
 		hostname, err = os.Hostname()
@@ -39,11 +40,19 @@ func Init(logger *slog.Logger, configPath string, hostname string, listenPort in
 	}
 
 	return util.UpdateConfig(logger, configPath, func(_ *latestconfig.Config) (*latestconfig.Config, error) {
-		return &latestconfig.Config{
+		conf := &latestconfig.Config{
 			Name:       hostname,
 			ListenPort: uint16(listenPort),
 			PrivateKey: privateKey.String(),
 			IPs:        ips,
-		}, nil
+		}
+
+		if domain != "" {
+			conf.DNS = &latestconfig.DNSConfig{
+				Domain: domain,
+			}
+		}
+
+		return conf, nil
 	})
 }

@@ -10,6 +10,7 @@
 package route
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -23,7 +24,7 @@ func Add(logger *slog.Logger, configPath, destination, via string) error {
 		// Do we already have a route with this destination?
 		for _, routeConf := range conf.Routes {
 			if routeConf.Destination == destination {
-				return nil, fmt.Errorf("route already exists")
+				return nil, errors.New("route already exists")
 			}
 		}
 
@@ -36,7 +37,7 @@ func Add(logger *slog.Logger, configPath, destination, via string) error {
 		}
 
 		if !found {
-			return nil, fmt.Errorf("gateway peer not found")
+			return nil, errors.New("gateway peer not found")
 		}
 
 		if err := validate.CIDR(destination); err != nil {

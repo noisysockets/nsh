@@ -3,6 +3,7 @@ FROM golang:1.22-bookworm
 WORKDIR /workspace
 
 all:
+  ARG VERSION=dev
   COPY (+build/nsh --GOARCH=amd64) ./dist/nsh-linux-amd64
   COPY (+build/nsh --GOARCH=arm64) ./dist/nsh-linux-arm64
   COPY (+build/nsh --GOOS=darwin --GOARCH=amd64) ./dist/nsh-darwin-amd64
@@ -23,7 +24,8 @@ build:
   RUN go mod download
   COPY . .
   COPY +build-web/dist ./web/dist
-  RUN CGO_ENABLED=0 go build --ldflags '-s' -o nsh main.go
+  ARG VERSION=dev
+  RUN CGO_ENABLED=0 go build --ldflags "-s -X 'github.com/noisysockets/nsh/internal/constants.Version=${VERSION}'" -o nsh main.go
   SAVE ARTIFACT ./nsh AS LOCAL dist/nsh-${GOOS}-${GOARCH}
 
 tidy:
