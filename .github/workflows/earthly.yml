@@ -23,7 +23,9 @@ jobs:
       run: earthly +lint
 
     - name: Build
-      run: earthly +build
+      run: |
+        earthly +build
+        earthly +docker
 
     - name: Test
       run: earthly +test
@@ -34,6 +36,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      
     - uses: earthly/actions-setup@v1
       with:
         version: v0.8.9
@@ -41,8 +50,8 @@ jobs:
     - name: Check Out Repo
       uses: actions/checkout@v3
 
-    - name: Build
-      run: earthly +all --VERSION=${{ github.ref_name }}
+    - name: Build and Push Image
+      run: earthly --push +all --VERSION=${{ github.ref_name }}
 
     - name: Release
       uses: softprops/action-gh-release@v1

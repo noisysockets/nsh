@@ -8,7 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/itchyny/gojq v0.12.15
 	github.com/miekg/dns v1.1.59
-	github.com/noisysockets/network v0.5.1
+	github.com/noisysockets/network v0.6.0
 	github.com/noisysockets/noisysockets v0.23.0
 	github.com/noisysockets/resolver v0.4.1
 	github.com/noisysockets/shell v0.5.0
@@ -28,6 +28,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/kevinburke/hostsfile v0.0.0-20220522040509-e5e984885321 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/noisysockets/contextio v0.3.0 // indirect
 	github.com/noisysockets/go-fqdn v1.1.0 // indirect
 	github.com/noisysockets/netstack v0.6.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect

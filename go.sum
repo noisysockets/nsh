@@ -29,12 +29,14 @@ github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyua
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/neilotoole/slogt v1.1.0 h1:c7qE92sq+V0yvCuaxph+RQ2jOKL61c4hqS1Bv9W7FZE=
 github.com/neilotoole/slogt v1.1.0/go.mod h1:RCrGXkPc/hYybNulqQrMHRtvlQ7F6NktNVLuLwk6V+w=
+github.com/noisysockets/contextio v0.3.0 h1:q4Fb+2gLGXwJ6YT0geXl2vCdihqMLrVHq4J9X79y2AM=
+github.com/noisysockets/contextio v0.3.0/go.mod h1:DtDkHE8zUYPVWOuhSwzzOHH57auRsxgucN9IVy3oANs=
 github.com/noisysockets/go-fqdn v1.1.0 h1:UcBIA0ul3hod8036gExMipIjLhWuvE7Fk3PVct4CBWY=
 github.com/noisysockets/go-fqdn v1.1.0/go.mod h1:MyLHpBO/g783D5FiMUfGZe4Tzs+8DK0rW83wqOcitas=
 github.com/noisysockets/netstack v0.6.0 h1:KNXPSEXLbB6ulUEvOsMiNSBTu93l40nO/X5utXlUTS4=
 github.com/noisysockets/netstack v0.6.0/go.mod h1:tt7ze5obpFYDX9aIygoEb+6p5q1FNbIfg2KcFiX65bc=
-github.com/noisysockets/network v0.5.1 h1:cf9qI2A7yuCxqQY1ebWIjVB6QkNyBVmD6x+iLi2ZTMQ=
-github.com/noisysockets/network v0.5.1/go.mod h1:NfuhIv4kzw6+cO6PHhBiNUSBL8Ep+4qFSutJmg4CgIw=
+github.com/noisysockets/network v0.6.0 h1:WQsm5g+BBXWGVkIyBhmaknXpgZUcsRr+Pl0IK8EJymg=
+github.com/noisysockets/network v0.6.0/go.mod h1:NfuhIv4kzw6+cO6PHhBiNUSBL8Ep+4qFSutJmg4CgIw=
 github.com/noisysockets/noisysockets v0.23.0 h1:BCUGoLi3pDTs5xoa/gRIk0pTUFGydpz/ADMfwNCAGD8=
 github.com/noisysockets/noisysockets v0.23.0/go.mod h1:p9lJdJW9RidDBMFnsH99TA8/+UhULhtvTOZZ1ji+xqc=
 github.com/noisysockets/resolver v0.4.1 h1:w8o1VA/ieM0MnUAENLDi3FHosmdOtBKmciGsfbww7dQ=

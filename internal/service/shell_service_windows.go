@@ -19,16 +19,18 @@ import (
 	"github.com/noisysockets/network"
 )
 
-// shellService is a remote shell service.
-type shellService struct{}
+var _ Service = (*ShellService)(nil)
+
+// ShellService is a remote shell service.
+type ShellService struct{}
 
 // Shell returns a new remote shell service.
-func Shell(_ *slog.Logger) *shellService {
-	return &shellService{}
+func Shell(_ *slog.Logger) Service {
+	return &ShellService{}
 }
 
 // When windows conpty support is added to creack/pty, this can be removed.
 // See: https://github.com/creack/pty/pull/155
-func (s *shellService) Serve(_ context.Context, _ network.Network) error {
+func (s *ShellService) Serve(_ context.Context, _ network.Network) error {
 	return errors.New("shell service is not supported on Windows")
 }

@@ -97,6 +97,8 @@ Open the following URL in your browser:
 xdg-open http://server.my.nzzy.net/shell/
 ```
 
+The network domain can be customized via the `--domain` flag of the `config init` command.
+
 ## Credits
 
 Noisy Sockets is based on code originally from the [wireguard-go](https://git.zx2c4.com/wireguard-go) project by Jason A. Donenfeld.

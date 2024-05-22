@@ -4,6 +4,7 @@ WORKDIR /workspace
 
 all:
   ARG VERSION=dev
+  BUILD --platform=linux/amd64 --platform=linux/arm64 +docker
   COPY (+build/nsh --GOARCH=amd64) ./dist/nsh-linux-amd64
   COPY (+build/nsh --GOARCH=arm64) ./dist/nsh-linux-arm64
   COPY (+build/nsh --GOOS=darwin --GOARCH=amd64) ./dist/nsh-darwin-amd64
@@ -16,6 +17,15 @@ all:
   SAVE ARTIFACT ./dist/nsh-darwin-arm64 AS LOCAL dist/nsh-darwin-arm64
   SAVE ARTIFACT ./dist/nsh-windows-amd64.exe AS LOCAL dist/nsh-windows-amd64.exe
   SAVE ARTIFACT ./checksums.txt AS LOCAL dist/checksums.txt
+
+docker:
+  ARG TARGETARCH
+  FROM gcr.io/distroless/static-debian12:nonroot
+  COPY (+build/nsh --GOOS=linux --GOARCH=${TARGETARCH}) /nsh
+  ENTRYPOINT ["/nsh"]
+  ARG VERSION=dev
+  SAVE IMAGE --push ghcr.io/noisysockets/nsh:${VERSION}
+  SAVE IMAGE --push ghcr.io/noisysockets/nsh:latest
 
 build:
   ARG GOOS=linux
@@ -44,6 +54,9 @@ tidy-go:
   LOCALLY
   RUN go mod tidy
   RUN go fmt ./...
+  RUN for dir in $(find . -name 'go.mod'); do \
+      (cd "${dir%/go.mod}" && go mod tidy); \
+    done
 
 lint-go:
   FROM golangci/golangci-lint:v1.57.2

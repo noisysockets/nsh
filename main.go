@@ -16,6 +16,7 @@ import (
 	"os"
 
 	"github.com/adrg/xdg"
+	"github.com/noisysockets/network"
 	"github.com/noisysockets/noisysockets/config"
 	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	configcmd "github.com/noisysockets/nsh/cmd/config"
@@ -119,7 +120,7 @@ func main() {
 							&cli.StringFlag{
 								Name:    "domain",
 								Aliases: []string{"d"},
-								Usage:   "The domain name to use for DNS",
+								Usage:   "The network domain",
 							},
 						}, sharedFlags...),
 						Before: initLogger,
@@ -316,6 +317,10 @@ func main() {
 						Name:  "shell",
 						Usage: "Enable remote shell service",
 					},
+					&cli.BoolFlag{
+						Name:  "gateway",
+						Usage: "Enable gateway service",
+					},
 				}, sharedFlags...),
 				Before: beforeAll(initLogger, loadConfig),
 				Action: func(c *cli.Context) error {
@@ -327,6 +332,10 @@ func main() {
 
 					if c.Bool("shell") {
 						services = append(services, service.Shell(logger))
+					}
+
+					if c.Bool("gateway") {
+						services = append(services, service.Gateway(logger, network.Host()))
 					}
 
 					// If all services are disabled, then throw an error.

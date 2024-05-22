@@ -22,19 +22,21 @@ import (
 	"github.com/noisysockets/resolver"
 )
 
-// dnsService is an emdedded DNS service.
-type dnsService struct {
+var _ Service = (*DNSService)(nil)
+
+// DNSService is a DNS service that provides recursive and authoritative DNS resolution.
+type DNSService struct {
 	logger *slog.Logger
 }
 
-// DNS creates a new instance of the DNS service.
-func DNS(logger *slog.Logger) *dnsService {
-	return &dnsService{
+// DNS returns a new DNS service.
+func DNS(logger *slog.Logger) *DNSService {
+	return &DNSService{
 		logger: logger,
 	}
 }
 
-func (s *dnsService) Serve(ctx context.Context, net network.Network) error {
+func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 	domain, err := net.Domain()
 	if err != nil {
 		return fmt.Errorf("failed to get network domain: %w", err)

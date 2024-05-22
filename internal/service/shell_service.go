@@ -31,20 +31,21 @@ import (
 	"github.com/rs/cors"
 )
 
-// shellService is a remote shell service.
-type shellService struct {
+var _ Service = (*ShellService)(nil)
+
+// ShellService is a remote shell service.
+type ShellService struct {
 	logger *slog.Logger
 }
 
 // Shell returns a new remote shell service.
-func Shell(logger *slog.Logger) *shellService {
-	return &shellService{
+func Shell(logger *slog.Logger) Service {
+	return &ShellService{
 		logger: logger,
 	}
 }
 
-// Serve starts the shell service.
-func (s *shellService) Serve(ctx context.Context, net network.Network) error {
+func (s *ShellService) Serve(ctx context.Context, net network.Network) error {
 	s.logger.Debug("Binding to http port")
 
 	lis, err := net.Listen("tcp", ":80")
