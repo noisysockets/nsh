@@ -37,7 +37,7 @@ func Add(logger *slog.Logger, configPath, destination, via string) error {
 		}
 
 		if !found {
-			return nil, errors.New("gateway peer not found")
+			return nil, errors.New("router peer not found")
 		}
 
 		if err := validate.CIDR(destination); err != nil {

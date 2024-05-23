@@ -20,6 +20,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/noisysockets/network"
 	"github.com/noisysockets/resolver"
+	"golang.org/x/sync/errgroup"
 )
 
 var _ Service = (*DNSService)(nil)
@@ -219,15 +220,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		}
 	})
 
-	s.logger.Debug("Binding to TCP port")
-
-	lis, err := net.Listen("tcp", ":53")
-	if err != nil {
-		return fmt.Errorf("failed to listen on TCP port: %w", err)
-	}
-	defer lis.Close()
-
-	s.logger.Debug("Binding to UDP port")
+	s.logger.Debug("Binding to DNS UDP port")
 
 	pc, err := net.ListenPacket("udp", ":53")
 	if err != nil {
@@ -235,10 +228,24 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 	}
 	defer pc.Close()
 
-	srv := &dns.Server{
+	// For UDP queries.
+	udpServer := &dns.Server{
 		Handler:    mux,
-		Listener:   lis,
 		PacketConn: pc,
+	}
+
+	s.logger.Debug("Binding to DNS TCP port")
+
+	lis, err := net.Listen("tcp", ":53")
+	if err != nil {
+		return fmt.Errorf("failed to listen on TCP port: %w", err)
+	}
+	defer lis.Close()
+
+	// For TCP queries.
+	tcpServer := &dns.Server{
+		Handler:  mux,
+		Listener: lis,
 	}
 
 	go func() {
@@ -249,15 +256,24 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := srv.ShutdownContext(shutdownCtx); err != nil {
+		if err := udpServer.ShutdownContext(shutdownCtx); err != nil {
+			s.logger.Error("Failed to shutdown DNS server", slog.Any("error", err))
+		}
+
+		if err := tcpServer.ShutdownContext(shutdownCtx); err != nil {
 			s.logger.Error("Failed to shutdown DNS server", slog.Any("error", err))
 		}
 	}()
 
 	s.logger.Info("Starting DNS server", slog.String("address", lis.Addr().String()))
 
-	if err := srv.ActivateAndServe(); err != nil {
-		return fmt.Errorf("failed to start DNS server: %w", err)
+	var g errgroup.Group
+
+	g.Go(udpServer.ActivateAndServe)
+	g.Go(tcpServer.ActivateAndServe)
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("failed to serve DNS: %w", err)
 	}
 
 	return nil

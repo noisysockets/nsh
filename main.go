@@ -113,9 +113,9 @@ func main() {
 							&cli.StringSliceFlag{
 								Name:  "ip",
 								Usage: "The IP address/s to assign to the peer",
-								// Use the	172.21.248.0/24 subnet as the default.
+								// Use the	100.64.0.0/24 subnet as the default.
 								// This CIDR is chosen to reduce the likelihood of conflicts.
-								Value: cli.NewStringSlice("172.21.248.1"),
+								Value: cli.NewStringSlice("100.64.0.1"),
 							},
 							&cli.StringFlag{
 								Name:    "domain",
@@ -269,7 +269,7 @@ func main() {
 							&cli.StringFlag{
 								Name:     "via",
 								Aliases:  []string{"v"},
-								Usage:    "The gateway peer name or public key",
+								Usage:    "The router peer name or public key",
 								Required: true,
 							},
 						}, sharedFlags...),
@@ -310,32 +310,32 @@ func main() {
 				Usage: "Start a server",
 				Flags: append([]cli.Flag{
 					&cli.BoolFlag{
-						Name:  "dns",
+						Name:  "enable-dns",
 						Usage: "Enable DNS service",
 					},
 					&cli.BoolFlag{
-						Name:  "shell",
+						Name:  "enable-shell",
 						Usage: "Enable remote shell service",
 					},
 					&cli.BoolFlag{
-						Name:  "gateway",
-						Usage: "Enable gateway service",
+						Name:  "enable-router",
+						Usage: "Enable router service",
 					},
 				}, sharedFlags...),
 				Before: beforeAll(initLogger, loadConfig),
 				Action: func(c *cli.Context) error {
 					var services []service.Service
 
-					if c.Bool("dns") {
+					if c.Bool("enable-dns") {
 						services = append(services, service.DNS(logger))
 					}
 
-					if c.Bool("shell") {
+					if c.Bool("enable-shell") {
 						services = append(services, service.Shell(logger))
 					}
 
-					if c.Bool("gateway") {
-						services = append(services, service.Gateway(logger, network.Host()))
+					if c.Bool("enable-router") {
+						services = append(services, service.Router(logger, network.Host()))
 					}
 
 					// If all services are disabled, then throw an error.

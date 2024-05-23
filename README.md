@@ -20,8 +20,8 @@ The `config init` command will generate a new private key and populate the
 configuration file with the provided options.
 
 ```sh
-nsh config init -c server.yaml -n server --listen-port=51820 --ip=172.21.248.1
-nsh config init -c client.yaml -n client --listen-port=51821 --ip=172.21.248.2
+nsh config init -c server.yaml -n server --listen-port=51820 --ip=100.64.0.1
+nsh config init -c client.yaml -n client --listen-port=51821 --ip=100.64.0.2
 ```
 
 ### Add Peers
@@ -49,7 +49,7 @@ nsh peer add -c client.yaml \
 In another tab, start the server.
 
 ```sh
-nsh serve -c server.yaml --dns --shell
+nsh serve -c server.yaml --enable-dns --enable-shell
 ```
 
 ### Connect to Server
@@ -79,19 +79,17 @@ To resolve the server hostname, you will need to configure the DNS resolver.
 For resolvconf (Debian/Ubuntu):
 
 ```sh
-sudo grep -q "nameserver 172.21.248.1" /etc/resolvconf/resolv.conf.d/tail || echo "nameserver 172.21.248.1" | sudo tee -a /etc/resolvconf/resolv.conf.d/tail > /dev/null
+sudo grep -q "nameserver 100.64.0.1" /etc/resolvconf/resolv.conf.d/tail || echo "nameserver 100.64.0.1" | sudo tee -a /etc/resolvconf/resolv.conf.d/tail > /dev/null
 sudo resolvconf -u
 ```
 
 For systemd-resolved (RHEL/CentOS):
 
 ```sh
-sudo resolvectl --interface nsh0 --set-dns 172.21.248.1 --set-domain my.nzzy.net.
+sudo resolvectl --interface=nsh0 --set-dns=100.64.0.1 --set-domain=my.nzzy.net.
 ```
 
 ##### Open Shell
-
-Open the following URL in your browser:
 
 ```sh
 xdg-open http://server.my.nzzy.net/shell/
