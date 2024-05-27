@@ -10,7 +10,7 @@ require (
 	github.com/miekg/dns v1.1.59
 	github.com/noisysockets/network v0.8.2
 	github.com/noisysockets/noisysockets v0.23.3
-	github.com/noisysockets/resolver v0.4.1
+	github.com/noisysockets/resolver v0.5.0
 	github.com/noisysockets/shell v0.5.0
 	github.com/rs/cors v1.11.0
 	github.com/urfave/cli/v2 v2.27.2
