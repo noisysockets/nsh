@@ -47,13 +47,12 @@ func UpdateConfig(logger *slog.Logger, configPath string, update func(*latestcon
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("error opening config file: %w", err)
 		}
-	} else {
-		defer configFile.Close()
 	}
 
 	var conf *latestconfig.Config
 	if configFile != nil {
 		conf, err = config.FromYAML(configFile)
+		_ = configFile.Close()
 		if err != nil {
 			return fmt.Errorf("error parsing config: %w", err)
 		}
