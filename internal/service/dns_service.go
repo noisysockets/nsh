@@ -13,7 +13,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/netip"
 	"time"
 
 	stdnet "net"
@@ -48,17 +47,9 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 	s.logger.Info("Registering recursive DNS handler")
 
-	// TODO: make this configurable.
 	upstreamResolver, err := resolver.System(nil)
 	if err != nil {
-		s.logger.Warn("Failed to create system DNS resolver, will use Cloudflare instead",
-			slog.Any("error", err))
-
-		// This will happen on Windows until support for system resolvers is added.
-		upstreamResolver = resolver.DNS(&resolver.DNSResolverConfig{
-			Protocol: resolver.ProtocolUDP,
-			Server:   netip.MustParseAddrPort("1.1.1.1:53"),
-		})
+		return fmt.Errorf("failed to get system resolver: %w", err)
 	}
 
 	mux.HandleFunc(".", func(w dns.ResponseWriter, req *dns.Msg) {
