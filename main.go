@@ -311,9 +311,8 @@ func main() {
 				},
 			},
 			{
-				Name:    "up",
-				Aliases: []string{"serve"},
-				Usage:   "Start a Noisy Sockets server",
+				Name:  "up",
+				Usage: "Start a Noisy Sockets server",
 				Flags: append([]cli.Flag{
 					&cli.BoolFlag{
 						Name:  "enable-dns",
