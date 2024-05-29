@@ -19,9 +19,17 @@ all:
   SAVE ARTIFACT ./checksums.txt AS LOCAL dist/checksums.txt
 
 docker:
+  FROM debian:bookworm-slim
+  RUN groupadd -g 65532 nonroot \
+    && useradd -u 65532 -g 65532 -s /sbin/nologin -m nonroot
+  # We need a ping SUID binary for ICMP forwarding to work.
+  RUN apt update \
+      && apt install -y iputils-ping \
+      && rm -rf /var/lib/apt/lists/*
+  COPY LICENSE /usr/local/share/nsh/
   ARG TARGETARCH
-  FROM gcr.io/distroless/static-debian12:nonroot
   COPY (+build/nsh --GOOS=linux --GOARCH=${TARGETARCH}) /nsh
+  USER 65532:65532
   ENTRYPOINT ["/nsh"]
   ARG VERSION=dev
   SAVE IMAGE --push ghcr.io/noisysockets/nsh:${VERSION}
@@ -33,24 +41,11 @@ build:
   COPY go.mod go.sum ./
   RUN go mod download
   COPY . .
-  COPY +build-web/dist ./web/dist
   ARG VERSION=dev
   RUN CGO_ENABLED=0 go build --ldflags "-s -X 'github.com/noisysockets/nsh/internal/constants.Version=${VERSION}'" -o nsh main.go
   SAVE ARTIFACT ./nsh AS LOCAL dist/nsh-${GOOS}-${GOARCH}
 
 tidy:
-  BUILD +tidy-go
-  BUILD +tidy-web
-
-lint:
-  BUILD +lint-go
-  BUILD +lint-web
-
-test:
-  BUILD +test-go
-  BUILD +test-web
-
-tidy-go:
   LOCALLY
   RUN go mod tidy
   RUN go fmt ./...
@@ -58,48 +53,13 @@ tidy-go:
       (cd "${dir%/go.mod}" && go mod tidy); \
     done
 
-lint-go:
+lint:
   FROM golangci/golangci-lint:v1.57.2
   WORKDIR /workspace
   COPY . ./
-  RUN mkdir -p web/dist \
-    && echo '<html></html>' > web/dist/index.html
   RUN golangci-lint run --timeout 5m ./...
 
-test-go:
+test:
   COPY . ./
-  RUN mkdir -p web/dist \
-    && echo '<html></html>' > web/dist/index.html
   RUN go test -coverprofile=coverage.out -v ./...
   SAVE ARTIFACT ./coverage.out AS LOCAL coverage.out
-
-tidy-web:
-  FROM +deps-web
-  COPY web .
-  RUN npm run format
-  SAVE ARTIFACT src AS LOCAL web/src
-
-lint-web:
-  FROM +deps-web
-  COPY web .
-  RUN npm run lint
-
-test-web:
-  FROM +deps-web
-  COPY web .
-  RUN npm run test
-
-build-web:
-  FROM +deps-web
-  COPY web .
-  RUN npm run build
-  SAVE ARTIFACT dist AS LOCAL web/dist
-
-deps-web:
-  FROM +tools
-  COPY web/package.json web/package-lock.json ./
-  RUN npm install
-
-tools:
-  RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  RUN apt install -y nodejs 

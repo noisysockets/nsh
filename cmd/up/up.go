@@ -7,7 +7,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package serve
+package up
 
 import (
 	"context"
@@ -24,7 +24,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config, services []service.Service) error {
+func Up(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config, services []service.Service) error {
 	logger.Debug("Opening WireGuard network")
 
 	net, err := noisysockets.OpenNetwork(logger, conf)
@@ -40,11 +40,13 @@ func Serve(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config, 
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	g.Go(func() error {
-		<-sig
-
-		logger.Debug("Received signal, shutting down")
-
-		return context.Canceled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-sig:
+			logger.Debug("Received signal, shutting down")
+			return context.Canceled
+		}
 	})
 
 	for _, s := range services {

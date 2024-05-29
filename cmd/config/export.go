@@ -10,6 +10,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -19,7 +20,7 @@ import (
 	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 )
 
-func Export(conf *latestconfig.Config, wireGuardConfigPath string) error {
+func Export(conf *latestconfig.Config, wireGuardConfigPath string, stripped bool) error {
 	var w io.Writer
 	if wireGuardConfigPath == "-" {
 		w = os.Stdout
@@ -41,8 +42,19 @@ func Export(conf *latestconfig.Config, wireGuardConfigPath string) error {
 		w = wireGuardConfigFile
 	}
 
-	if err := config.ToINI(w, conf); err != nil {
-		return fmt.Errorf("error writing WireGuard config: %w", err)
+	if stripped {
+		var buf bytes.Buffer
+		if err := config.ToINI(&buf, conf); err != nil {
+			return fmt.Errorf("error writing WireGuard config: %w", err)
+		}
+
+		if err := config.StripINI(w, bytes.NewReader(buf.Bytes())); err != nil {
+			return fmt.Errorf("error stripping WireGuard config: %w", err)
+		}
+	} else {
+		if err := config.ToINI(w, conf); err != nil {
+			return fmt.Errorf("error writing WireGuard config: %w", err)
+		}
 	}
 
 	return nil

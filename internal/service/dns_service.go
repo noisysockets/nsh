@@ -11,8 +11,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	stdnet "net"
@@ -45,8 +47,9 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 	mux := dns.NewServeMux()
 
-	s.logger.Info("Registering recursive DNS handler")
+	s.logger.Info("Registering recursive DNS handler", slog.String("zone", "."))
 
+	// TODO: make configurable.
 	upstreamResolver, err := resolver.System(nil)
 	if err != nil {
 		return fmt.Errorf("failed to get system resolver: %w", err)
@@ -55,6 +58,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 	mux.HandleFunc(".", func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := &dns.Msg{}
 		reply.SetReply(req)
+		reply.RecursionAvailable = true
 
 		logger := s.logger.With(
 			slog.String("zone", "."),
@@ -75,7 +79,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 			return
 		}
 
-		logger.Debug("Forwarding DNS question")
+		logger.Info("Recursively resolving DNS query")
 
 		for _, q := range req.Question {
 			logger = logger.With(
@@ -86,8 +90,13 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 			addrs, err := upstreamResolver.LookupNetIP(ctx, "ip", q.Name)
 			if err != nil {
+				if strings.Contains(err.Error(), resolver.ErrNoSuchHost.Error()) {
+					reply.Rcode = dns.RcodeNameError
+					return
+				}
+
 				logger.Warn("Failed to lookup DNS question", slog.Any("error", err))
-				reply.Rcode = dns.RcodeNameError
+				reply.Rcode = dns.RcodeServerFailure
 				return
 			}
 
@@ -144,11 +153,15 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 	mux.HandleFunc(domain, func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := &dns.Msg{}
 		reply.SetReply(req)
+		reply.Authoritative = true
+		reply.RecursionAvailable = true
 
 		logger := s.logger.With(
 			slog.String("zone", domain),
 			slog.String("remoteAddr", w.RemoteAddr().String()),
 			slog.Int("id", int(req.Id)))
+
+		logger.Info("Resolving DNS question")
 
 		defer func() {
 			if err := w.WriteMsg(reply); err != nil {
@@ -165,8 +178,13 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 			addrs, err := net.LookupHost(q.Name)
 			if err != nil {
+				if strings.Contains(err.Error(), resolver.ErrNoSuchHost.Error()) {
+					reply.Rcode = dns.RcodeNameError
+					return
+				}
+
 				logger.Warn("Failed to lookup DNS question", slog.Any("error", err))
-				reply.Rcode = dns.RcodeNameError
+				reply.Rcode = dns.RcodeServerFailure
 				return
 			}
 
@@ -222,8 +240,6 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		}
 	})
 
-	s.logger.Debug("Binding to DNS UDP port")
-
 	pc, err := net.ListenPacket("udp", ":53")
 	if err != nil {
 		return fmt.Errorf("failed to listen on UDP port: %w", err)
@@ -235,8 +251,6 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		Handler:    mux,
 		PacketConn: pc,
 	}
-
-	s.logger.Debug("Binding to DNS TCP port")
 
 	lis, err := net.Listen("tcp", ":53")
 	if err != nil {
@@ -250,31 +264,34 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		Listener: lis,
 	}
 
-	go func() {
-		<-ctx.Done()
+	g, ctx := errgroup.WithContext(ctx)
 
-		s.logger.Debug("Shutting down DNS server")
+	// We have to use multiple server instances as we can't serve both UDP and TCP
+	// at the same time on the one server instance.
+	for _, srv := range []*dns.Server{udpServer, tcpServer} {
+		srv := srv
 
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		g.Go(func() error {
+			g.Go(func() error {
+				<-ctx.Done()
 
-		if err := udpServer.ShutdownContext(shutdownCtx); err != nil {
-			s.logger.Error("Failed to shutdown DNS server", slog.Any("error", err))
-		}
+				shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
 
-		if err := tcpServer.ShutdownContext(shutdownCtx); err != nil {
-			s.logger.Error("Failed to shutdown DNS server", slog.Any("error", err))
-		}
-	}()
+				if err := srv.ShutdownContext(shutdownCtx); err != nil {
+					return err
+				}
 
-	s.logger.Info("Starting DNS server", slog.String("address", lis.Addr().String()))
+				return nil
+			})
 
-	var g errgroup.Group
+			return srv.ActivateAndServe()
+		})
+	}
 
-	g.Go(udpServer.ActivateAndServe)
-	g.Go(tcpServer.ActivateAndServe)
+	s.logger.Info("Listening for DNS queries", slog.String("address", lis.Addr().String()))
 
-	if err := g.Wait(); err != nil {
+	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("failed to serve DNS: %w", err)
 	}
 

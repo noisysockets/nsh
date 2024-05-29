@@ -22,8 +22,7 @@ import (
 	configcmd "github.com/noisysockets/nsh/cmd/config"
 	peercmd "github.com/noisysockets/nsh/cmd/peer"
 	routecmd "github.com/noisysockets/nsh/cmd/route"
-	servecmd "github.com/noisysockets/nsh/cmd/serve"
-	shellcmd "github.com/noisysockets/nsh/cmd/shell"
+	upcmd "github.com/noisysockets/nsh/cmd/up"
 	"github.com/noisysockets/nsh/internal/constants"
 	"github.com/noisysockets/nsh/internal/service"
 	"github.com/noisysockets/nsh/internal/util"
@@ -162,12 +161,18 @@ func main() {
 								Usage:   "The path to write the WireGuard formatted configuration",
 								Value:   "-",
 							},
+							&cli.BoolFlag{
+								Name:  "stripped",
+								Usage: "Remove wg-quick specific fields",
+								Value: false,
+							},
 						}, sharedFlags...),
 						Before: beforeAll(initLogger, loadConfig),
 						Action: func(c *cli.Context) error {
 							return configcmd.Export(
 								conf,
-								c.String("output"))
+								c.String("output"),
+								c.Bool("stripped"))
 						},
 					},
 					{
@@ -306,16 +311,13 @@ func main() {
 				},
 			},
 			{
-				Name:  "serve",
-				Usage: "Start a server",
+				Name:    "up",
+				Aliases: []string{"serve"},
+				Usage:   "Start a Noisy Sockets server",
 				Flags: append([]cli.Flag{
 					&cli.BoolFlag{
 						Name:  "enable-dns",
 						Usage: "Enable DNS service",
-					},
-					&cli.BoolFlag{
-						Name:  "enable-shell",
-						Usage: "Enable remote shell service",
 					},
 					&cli.BoolFlag{
 						Name:  "enable-router",
@@ -330,10 +332,6 @@ func main() {
 						services = append(services, service.DNS(logger))
 					}
 
-					if c.Bool("enable-shell") {
-						services = append(services, service.Shell(logger))
-					}
-
 					if c.Bool("enable-router") {
 						services = append(services, service.Router(logger, network.Host()))
 					}
@@ -344,23 +342,7 @@ func main() {
 						return errors.New("at least one service must be enabled")
 					}
 
-					return servecmd.Serve(c.Context, logger, conf, services)
-				},
-			},
-			{
-				Name:      "shell",
-				Usage:     "Connect to a remote shell server",
-				Flags:     sharedFlags,
-				Args:      true,
-				ArgsUsage: "address",
-				Before:    beforeAll(initLogger, loadConfig),
-				Action: func(c *cli.Context) error {
-					if c.Args().Len() != 1 {
-						_ = cli.ShowSubcommandHelp(c)
-						return errors.New("expected server address/port as argument")
-					}
-
-					return shellcmd.Connect(c.Context, logger, conf, c.Args().First())
+					return upcmd.Up(c.Context, logger, conf, services)
 				},
 			},
 		},
@@ -368,11 +350,6 @@ func main() {
 
 	if err := app.Run(os.Args); err != nil {
 		logger.Error("Error", slog.Any("error", err))
-
-		var e util.ExitError
-		if errors.As(err, &e) {
-			os.Exit(int(e))
-		}
 		os.Exit(1)
 	}
 }

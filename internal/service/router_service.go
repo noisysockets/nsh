@@ -22,19 +22,19 @@ import (
 
 var _ Service = (*RouterService)(nil)
 
-// RouterService is a service that forwards packets from the WireGuard network
-// to the destination network.
+// RouterService is a service that forwards packets from the source network to
+// the destination network and vice versa.
 type RouterService struct {
-	logger         *slog.Logger
-	destinationNet network.Network
+	logger *slog.Logger
+	dstNet network.Network
 }
 
-// Router returns a service that forwards packets from the WireGuard network to
-// the destination network.s
-func Router(logger *slog.Logger, destinationNet network.Network) *RouterService {
+// Router returns a service that forwards packets from the source network to
+// the destination network and vice versa.
+func Router(logger *slog.Logger, dstNet network.Network) *RouterService {
 	return &RouterService{
-		logger:         logger,
-		destinationNet: destinationNet,
+		logger: logger,
+		dstNet: dstNet,
 	}
 }
 
@@ -46,18 +46,17 @@ func (s *RouterService) Serve(ctx context.Context, net network.Network) error {
 			netip.MustParsePrefix("0.0.0.0/0"),
 			netip.MustParsePrefix("::/0"),
 		},
-		// Deny loopback traffic.
-		DeniedDestinations: []netip.Prefix{
-			netip.MustParsePrefix("127.0.0.0/8"),
-			netip.MustParsePrefix("::1/128"),
-		},
 	}
 
-	fwd := forwarder.New(ctx, s.logger, s.destinationNet, &fwdConf)
+	userspaceNet := net.(*noisysockets.NoisySocketsNetwork).UserspaceNetwork
+	fwd, err := forwarder.New(ctx, s.logger, userspaceNet, s.dstNet, &fwdConf)
+	if err != nil {
+		return fmt.Errorf("failed to create packet forwarder: %w", err)
+	}
 	defer fwd.Close()
 
 	if err := net.(*noisysockets.NoisySocketsNetwork).EnableForwarding(fwd); err != nil {
-		return fmt.Errorf("failed to enable forwarding: %w", err)
+		return fmt.Errorf("failed to enable packet forwarding: %w", err)
 	}
 
 	<-ctx.Done()
