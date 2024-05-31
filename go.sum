@@ -35,6 +35,10 @@ github.com/noisysockets/network v0.9.1 h1:T9Cxdid+W4jdz32OaGylloj30dMr2OEDFEiuf0
 github.com/noisysockets/network v0.9.1/go.mod h1:wfH6XCa9c4UcRUtwd/f4hlan0AcgVAjFoM7FyKPKnG0=
 github.com/noisysockets/noisysockets v0.24.0 h1:sb9ORGIHIL6Xouge/PyL36zQx7Pr4gAJxtgVLcoxjC8=
 github.com/noisysockets/noisysockets v0.24.0/go.mod h1:boYFBwQbHeIL/JZo0dEt/Zmr7ccYXkcBWh6cHz8ug+c=
+github.com/noisysockets/noisysockets v0.24.1 h1:yNq8IegARnCw+UtC7yH7dNgq339KJaVRClEe6gKEO2Y=
+github.com/noisysockets/noisysockets v0.24.1/go.mod h1:boYFBwQbHeIL/JZo0dEt/Zmr7ccYXkcBWh6cHz8ug+c=
+github.com/noisysockets/noisysockets v0.24.2 h1:hAoh/eRmjTqbsZ9lry+Xhqk7fQaxfVx+DKJNxcosyKY=
+github.com/noisysockets/noisysockets v0.24.2/go.mod h1:boYFBwQbHeIL/JZo0dEt/Zmr7ccYXkcBWh6cHz8ug+c=
 github.com/noisysockets/pinger v0.4.2 h1:J+ksTzJaJcersvrAdhWGfSD1QXcroGpjO85XQZamcqE=
 github.com/noisysockets/pinger v0.4.2/go.mod h1:vURwBVmoQtKHhzmRD4MNURVfAGEeNcK/gTWojvpnsYY=
 github.com/noisysockets/resolver v0.5.2 h1:iqFVH8j38CWMzrbLGIRK2QgDzRID87zfwpnx3kJ7j/g=

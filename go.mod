@@ -8,7 +8,7 @@ require (
 	github.com/itchyny/gojq v0.12.15
 	github.com/miekg/dns v1.1.59
 	github.com/noisysockets/network v0.9.1
-	github.com/noisysockets/noisysockets v0.24.0
+	github.com/noisysockets/noisysockets v0.24.2
 	github.com/noisysockets/resolver v0.5.2
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/sync v0.7.0
