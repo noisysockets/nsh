@@ -18,9 +18,18 @@ import (
 // IPs validates a list of IP addresses.
 func IPs(ips []string) error {
 	for _, ip := range ips {
-		if _, err := netip.ParseAddr(ip); err != nil {
-			return fmt.Errorf("invalid IP address %q: %w", ip, err)
+		if err := IP(ip); err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+// IP validates an IP address string.
+func IP(ip string) error {
+	_, err := netip.ParseAddr(ip)
+	if err != nil {
+		return fmt.Errorf("invalid IP address %q: %w", ip, err)
 	}
 	return nil
 }

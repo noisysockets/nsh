@@ -21,6 +21,7 @@ import (
 	"github.com/noisysockets/noisysockets/config"
 	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	configcmd "github.com/noisysockets/nsh/cmd/config"
+	dnscmd "github.com/noisysockets/nsh/cmd/dns"
 	peercmd "github.com/noisysockets/nsh/cmd/peer"
 	routecmd "github.com/noisysockets/nsh/cmd/route"
 	upcmd "github.com/noisysockets/nsh/cmd/up"
@@ -307,6 +308,37 @@ func main() {
 								c.String("config"),
 								c.Args().First(),
 							)
+						},
+					},
+				},
+			},
+			{
+				Name:  "dns",
+				Usage: "Manage DNS configuration",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "server",
+						Usage: "Manage DNS servers",
+						Subcommands: []*cli.Command{
+							{
+								Name:      "add",
+								Usage:     "Add a DNS server",
+								Args:      true,
+								ArgsUsage: "address",
+								Flags:     sharedFlags,
+								Action: func(c *cli.Context) error {
+									if c.Args().Len() != 1 {
+										_ = cli.ShowSubcommandHelp(c)
+										return errors.New("expected DNS server address as argument")
+									}
+
+									return dnscmd.AddServer(
+										logger,
+										c.String("config"),
+										c.Args().First(),
+									)
+								},
+							},
 						},
 					},
 				},
