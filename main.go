@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"os"
 
 	"github.com/adrg/xdg"
@@ -322,17 +323,34 @@ func main() {
 						Name:  "enable-router",
 						Usage: "Enable router service",
 					},
+					&cli.BoolFlag{
+						Name:  "nat64",
+						Usage: "Enable DNS64/NAT64 for IPv4-only destinations",
+						Value: true,
+					},
+					&cli.StringFlag{
+						Name:  "nat64-prefix",
+						Usage: "The DNS64/NAT64 prefix",
+						Value: "64:ff9b::/96",
+					},
 				}, sharedFlags...),
 				Before: beforeAll(initLogger, loadConfig),
 				Action: func(c *cli.Context) error {
+					enableNAT64 := c.Bool("nat64")
+
+					nat64Prefix, err := netip.ParsePrefix(c.String("nat64-prefix"))
+					if err != nil {
+						return fmt.Errorf("failed to parse NAT64 prefix: %w", err)
+					}
+
 					var services []service.Service
 
 					if c.Bool("enable-dns") {
-						services = append(services, service.DNS(logger))
+						services = append(services, service.DNS(logger, enableNAT64, nat64Prefix))
 					}
 
 					if c.Bool("enable-router") {
-						services = append(services, service.Router(logger, network.Host()))
+						services = append(services, service.Router(logger, network.Host(), enableNAT64, nat64Prefix))
 					}
 
 					// If all services are disabled, then throw an error.

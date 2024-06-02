@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -29,13 +30,17 @@ var _ Service = (*DNSService)(nil)
 
 // DNSService is a DNS service that provides recursive and authoritative DNS resolution.
 type DNSService struct {
-	logger *slog.Logger
+	logger      *slog.Logger
+	enableNAT64 bool
+	nat64Prefix netip.Prefix
 }
 
 // DNS returns a new DNS service.
-func DNS(logger *slog.Logger) *DNSService {
+func DNS(logger *slog.Logger, enableNAT64 bool, nat64Prefix netip.Prefix) *DNSService {
 	return &DNSService{
-		logger: logger,
+		logger:      logger,
+		enableNAT64: enableNAT64,
+		nat64Prefix: nat64Prefix,
 	}
 }
 
@@ -109,6 +114,13 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 				}
 			}
 
+			if s.enableNAT64 && len(ipv6Addrs) == 0 {
+				// Map the IPv4 addresses to IPv6 using the DNS64 prefix
+				for _, addr := range ipv4Addrs {
+					ipv6Addrs = append(ipv6Addrs, append(s.nat64Prefix.Addr().AsSlice()[0:12], addr...))
+				}
+			}
+
 			switch q.Qtype {
 			case dns.TypeA:
 				logger.Debug("Answering DNS question", slog.Int("answers", len(ipv4Addrs)))
@@ -119,7 +131,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 							Name:   q.Name,
 							Rrtype: dns.TypeA,
 							Class:  dns.ClassINET,
-							// TODO: would be nice to get ttl from the upstream.
+							// TODO: would be nice to get TTL from the upstream.
 							Ttl: 300,
 						},
 						A: addr,
@@ -134,7 +146,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 							Name:   q.Name,
 							Rrtype: dns.TypeAAAA,
 							Class:  dns.ClassINET,
-							// TODO: would be nice to get ttl from the upstream.
+							// TODO: would be nice to get TTL from the upstream.
 							Ttl: 300,
 						},
 						AAAA: addr,
@@ -200,6 +212,13 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 					ipv4Addrs = append(ipv4Addrs, ip)
 				} else {
 					ipv6Addrs = append(ipv6Addrs, ip)
+				}
+			}
+
+			if s.enableNAT64 && len(ipv6Addrs) == 0 {
+				// Map the IPv4 addresses to IPv6 using the DNS64 prefix
+				for _, addr := range ipv4Addrs {
+					ipv6Addrs = append(ipv6Addrs, append(s.nat64Prefix.Addr().AsSlice()[0:12], addr...))
 				}
 			}
 

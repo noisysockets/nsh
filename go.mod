@@ -7,9 +7,9 @@ require (
 	github.com/gofrs/flock v0.8.1
 	github.com/itchyny/gojq v0.12.15
 	github.com/miekg/dns v1.1.59
-	github.com/noisysockets/network v0.9.1
-	github.com/noisysockets/noisysockets v0.24.2
-	github.com/noisysockets/resolver v0.5.2
+	github.com/noisysockets/network v0.12.1
+	github.com/noisysockets/noisysockets v0.24.4
+	github.com/noisysockets/resolver v0.8.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/sync v0.7.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -22,10 +22,9 @@ require (
 	github.com/google/btree v1.1.2 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
-	github.com/kevinburke/hostsfile v0.0.0-20220522040509-e5e984885321 // indirect
-	github.com/noisysockets/contextio v0.3.0 // indirect
-	github.com/noisysockets/go-fqdn v1.1.0 // indirect
-	github.com/noisysockets/netstack v0.6.0 // indirect
+	github.com/noisysockets/contextio v0.4.0 // indirect
+	github.com/noisysockets/netstack v0.7.0 // indirect
+	github.com/noisysockets/netutil v0.4.0 // indirect
 	github.com/noisysockets/pinger v0.4.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect

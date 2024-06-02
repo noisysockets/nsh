@@ -25,16 +25,20 @@ var _ Service = (*RouterService)(nil)
 // RouterService is a service that forwards packets from the source network to
 // the destination network and vice versa.
 type RouterService struct {
-	logger *slog.Logger
-	dstNet network.Network
+	logger      *slog.Logger
+	dstNet      network.Network
+	enableNAT64 bool
+	nat64Prefix netip.Prefix
 }
 
 // Router returns a service that forwards packets from the source network to
 // the destination network and vice versa.
-func Router(logger *slog.Logger, dstNet network.Network) *RouterService {
+func Router(logger *slog.Logger, dstNet network.Network, enableNAT64 bool, nat64Prefix netip.Prefix) *RouterService {
 	return &RouterService{
-		logger: logger,
-		dstNet: dstNet,
+		logger:      logger,
+		dstNet:      dstNet,
+		enableNAT64: enableNAT64,
+		nat64Prefix: nat64Prefix,
 	}
 }
 
@@ -46,6 +50,8 @@ func (s *RouterService) Serve(ctx context.Context, net network.Network) error {
 			netip.MustParsePrefix("0.0.0.0/0"),
 			netip.MustParsePrefix("::/0"),
 		},
+		EnableNAT64: &s.enableNAT64,
+		NAT64Prefix: &s.nat64Prefix,
 	}
 
 	userspaceNet := net.(*noisysockets.NoisySocketsNetwork).UserspaceNetwork
