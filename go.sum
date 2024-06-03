@@ -29,12 +29,10 @@ github.com/noisysockets/netstack v0.7.0 h1:zsFCWlnjTvTGPlDYCi/TV45YlPPXeIn+XQLoF
 github.com/noisysockets/netstack v0.7.0/go.mod h1:tt7ze5obpFYDX9aIygoEb+6p5q1FNbIfg2KcFiX65bc=
 github.com/noisysockets/netutil v0.5.0 h1:KyNDFO82qyG8+x0a/tezqTy9U93ekZD2zGDnLt9xv6g=
 github.com/noisysockets/netutil v0.5.0/go.mod h1:gWvujysVzceRuJ283MNnME3vZjPYSfrZIZDt0tXGKB4=
-github.com/noisysockets/network v0.12.1 h1:wKzCDQ8mQnG7R8hO4WQ46/4qdXDB/1qPHzyDCbaPg+o=
-github.com/noisysockets/network v0.12.1/go.mod h1:oejM1men0oMAZiLTGNcayyREUJkRNhmmOsEVIhi47tk=
-github.com/noisysockets/noisysockets v0.24.4 h1:NwDjB3PwD/Tg0j/DYJYtMDeE6rqS1deNPfeRNOPS65c=
-github.com/noisysockets/noisysockets v0.24.4/go.mod h1:ogUCJAAZgl9MFS6zTM1py0ttmEkM2fu3kWWkYJGS9Ro=
-github.com/noisysockets/noisysockets v0.24.5 h1:M0sqGhEB3xxFzbKzh3Sw26GQouhyeOom2T/+TgCxBYo=
-github.com/noisysockets/noisysockets v0.24.5/go.mod h1:ogUCJAAZgl9MFS6zTM1py0ttmEkM2fu3kWWkYJGS9Ro=
+github.com/noisysockets/network v0.12.2 h1:Wpxqc/zpwB08h5jvKC94XKrPBE3zGdGkjZIyEa6M1Yc=
+github.com/noisysockets/network v0.12.2/go.mod h1:oejM1men0oMAZiLTGNcayyREUJkRNhmmOsEVIhi47tk=
+github.com/noisysockets/noisysockets v0.24.6 h1:DINgVZg7gbzW/5RFY95ICjXDi71VCR2h/+1RWWau0IY=
+github.com/noisysockets/noisysockets v0.24.6/go.mod h1:tRs5zZe9w0PkG7EnV/4ZDdHaMvor9LVDmnSv0N4WwYE=
 github.com/noisysockets/pinger v0.4.2 h1:J+ksTzJaJcersvrAdhWGfSD1QXcroGpjO85XQZamcqE=
 github.com/noisysockets/pinger v0.4.2/go.mod h1:vURwBVmoQtKHhzmRD4MNURVfAGEeNcK/gTWojvpnsYY=
 github.com/noisysockets/resolver v0.9.0 h1:UW9849KKkIWZWpUr+xJMyiiHkjXpjcwlYc1SV441fsc=

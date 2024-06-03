@@ -8,8 +8,8 @@ require (
 	github.com/itchyny/gojq v0.12.15
 	github.com/miekg/dns v1.1.59
 	github.com/noisysockets/netutil v0.5.0
-	github.com/noisysockets/network v0.12.1
-	github.com/noisysockets/noisysockets v0.24.5
+	github.com/noisysockets/network v0.12.2
+	github.com/noisysockets/noisysockets v0.24.6
 	github.com/noisysockets/resolver v0.9.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.2
