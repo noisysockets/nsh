@@ -60,6 +60,14 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		return fmt.Errorf("failed to get system resolver: %w", err)
 	}
 
+	if s.enableNAT64 {
+		s.logger.Info("Enabling DNS64", slog.String("prefix", s.nat64Prefix.String()))
+
+		upstreamResolver = resolver.DNS64(upstreamResolver, &resolver.DNS64ResolverConfig{
+			Prefix: &s.nat64Prefix,
+		})
+	}
+
 	mux.HandleFunc(".", func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := &dns.Msg{}
 		reply.SetReply(req)
@@ -111,13 +119,6 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 					ipv4Addrs = append(ipv4Addrs, stdnet.IP(addr.Unmap().AsSlice()))
 				} else {
 					ipv6Addrs = append(ipv6Addrs, stdnet.IP(addr.AsSlice()))
-				}
-			}
-
-			if s.enableNAT64 && len(ipv6Addrs) == 0 {
-				// Map the IPv4 addresses to IPv6 using the DNS64 prefix
-				for _, addr := range ipv4Addrs {
-					ipv6Addrs = append(ipv6Addrs, append(s.nat64Prefix.Addr().AsSlice()[0:12], addr...))
 				}
 			}
 
@@ -212,13 +213,6 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 					ipv4Addrs = append(ipv4Addrs, ip)
 				} else {
 					ipv6Addrs = append(ipv6Addrs, ip)
-				}
-			}
-
-			if s.enableNAT64 && len(ipv6Addrs) == 0 {
-				// Map the IPv4 addresses to IPv6 using the DNS64 prefix
-				for _, addr := range ipv4Addrs {
-					ipv6Addrs = append(ipv6Addrs, append(s.nat64Prefix.Addr().AsSlice()[0:12], addr...))
 				}
 			}
 

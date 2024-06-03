@@ -13,6 +13,7 @@ variety of upstream protocols including DNS over TLS.
 
 * DNS over UDP/TCP
 * Recursive DNS Resolver
+* DNS64 (IPv6 to IPv4 translation)
 
 ## Getting Started
 
@@ -22,8 +23,8 @@ The `config init` command will generate a new private key and populate the
 configuration file with the provided options.
 
 ```sh
-nsh config init -c resolver.yaml -n resolver --listen-port=51820 --ip=100.64.0.1
-nsh config init -c client.yaml -n client --listen-port=51821 --ip=100.64.0.2
+nsh config init -c resolver.yaml -n resolver
+nsh config init -c client.yaml -n client --ip=$(nsh config show -c resolver.yaml 'next(.ips[0])')
 ```
 
 ### Add Peers
@@ -70,12 +71,12 @@ the resolver using a network namespace.
 
 ```sh
 sudo mkdir -p /etc/netns/nsh-client-ns
-echo -e "nameserver 100.64.0.1\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
+echo -e "nameserver $(nsh config show -c resolver.yaml '.ips[0]')\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
 sudo ip netns add nsh-client-ns
 sudo ip link add nsh0 type wireguard
 sudo ip link set nsh0 netns nsh-client-ns
 sudo ip netns exec nsh-client-ns wg setconf nsh0 /etc/wireguard/nsh0.conf
-sudo ip -n nsh-client-ns addr add 100.64.0.2/24 dev nsh0
+sudo ip -n nsh-client-ns addr add "$(nsh config show -c client.yaml '.ips[0]')/64" dev nsh0
 sudo ip -n nsh-client-ns link set nsh0 up
 ```
 
@@ -90,7 +91,7 @@ The network domain can be changed by passing the `--domain` flag to the
 `config init` command.
 
 ```sh
-sudo ip netns exec nsh-client-ns dig +search resolver resolver.my.nzzy.net
+sudo ip netns exec nsh-client-ns dig +search resolver AAAA
 ```
 
 ##### Internet Name
@@ -98,7 +99,17 @@ sudo ip netns exec nsh-client-ns dig +search resolver resolver.my.nzzy.net
 We can also use the resolver to recursively resolve internet names.
 
 ```sh
-sudo ip netns exec nsh-client-ns dig google.com
+sudo ip netns exec nsh-client-ns dig google.com AAAA
+```
+
+###### IPv4
+
+By default the resolver implements [DNS64](https://tools.ietf.org/html/rfc6147),
+which will translate IPv4 only addresses to IPv6 (using the well known prefix 
+`64:ff9b::/96`).
+
+```sh
+sudo ip netns exec nsh-client-ns dig ipv4.google.com AAAA
 ```
 
 #### Cleanup

@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/noisysockets/netutil/ula"
 	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
 	"github.com/noisysockets/noisysockets/types"
 	"github.com/noisysockets/nsh/internal/util"
@@ -30,13 +31,27 @@ func Init(logger *slog.Logger, configPath string, hostname string,
 		}
 	}
 
+	if listenPort == 0 {
+		// Pick a persistent random port in the dynamic/private range.
+		listenPort = util.RandomInt(49152, 65536)
+	}
+
+	if len(ips) > 0 {
+		if err := validate.IPs(ips); err != nil {
+			return fmt.Errorf("invalid IP address: %w", err)
+		}
+	} else {
+		prefix, err := ula.Generate()
+		if err != nil {
+			return fmt.Errorf("failed to generate random ULA prefix: %w", err)
+		}
+
+		ips = append(ips, prefix.Addr().Next().String())
+	}
+
 	privateKey, err := types.NewPrivateKey()
 	if err != nil {
 		return fmt.Errorf("failed to generate private key: %w", err)
-	}
-
-	if err := validate.IPs(ips); err != nil {
-		return fmt.Errorf("invalid IP address: %w", err)
 	}
 
 	return util.UpdateConfig(logger, configPath, func(_ *latestconfig.Config) (*latestconfig.Config, error) {

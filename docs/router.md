@@ -8,6 +8,7 @@ internet (or other private networks).
 
 * TCP/UDP Forwarding
 * Limited ICMPv4/ICMPv6 forwarding (ping)
+* NAT64 (IPv6 to IPv4 translation)
 * Recursive DNS Resolver
 
 ## Getting Started
@@ -18,8 +19,8 @@ The `config init` command will generate a new private key and populate the
 configuration file with the provided options.
 
 ```sh
-nsh config init -c router.yaml -n router --listen-port=51820 --ip=100.64.0.1
-nsh config init -c client.yaml -n client --listen-port=51821 --ip=100.64.0.2
+nsh config init -c router.yaml -n router
+nsh config init -c client.yaml -n client --ip=$(nsh config show -c router.yaml 'next(.ips[0])')
 ```
 
 ### Add Peers
@@ -49,7 +50,7 @@ The client will need to know where to send internet bound traffic (eg. which
 peer is acting as a router).
 
 ```sh
-nsh route add -c client.yaml --destination=0.0.0.0/0 --via=router
+nsh route add -c client.yaml --destination=::/0 --via=router
 ```
 
 ### Start Router
@@ -77,21 +78,32 @@ the router using a network namespace.
 
 ```sh
 sudo mkdir -p /etc/netns/nsh-client-ns
-echo -e "nameserver 100.64.0.1\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
+echo -e "nameserver $(nsh config show -c router.yaml '.ips[0]')\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
 sudo ip netns add nsh-client-ns
 sudo ip link add nsh0 type wireguard
 sudo ip link set nsh0 netns nsh-client-ns
 sudo ip netns exec nsh-client-ns wg setconf nsh0 /etc/wireguard/nsh0.conf
-sudo ip -n nsh-client-ns addr add 100.64.0.2/24 dev nsh0
+sudo ip -n nsh-client-ns addr add "$(nsh config show -c client.yaml '.ips[0]')/64" dev nsh0
 sudo ip -n nsh-client-ns link set nsh0 up
-sudo ip -n nsh-client-ns route add default via 100.64.0.1 dev nsh0
+sudo ip -6 -n nsh-client-ns route add default via "$(nsh config show -c router.yaml '.ips[0]')" dev nsh0
 ```
 
 #### Make a Request
 
 You can now attempt to access the internet using the router as a gateway.
 
+##### IPv6
+
 The following will return the public IP address of the router.
+
+```sh
+sudo ip netns exec nsh-client-ns curl https://ipv6.icanhazip.com
+```
+
+##### IPv4
+
+By default the router implements [NAT64](https://tools.ietf.org/html/rfc6146),
+which will allow you to access IPv4 resources on IPv6 only networks.
 
 ```sh
 sudo ip netns exec nsh-client-ns curl https://ipv4.icanhazip.com

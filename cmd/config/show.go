@@ -12,6 +12,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"os"
 
 	"github.com/itchyny/gojq"
@@ -28,15 +29,28 @@ func Show(ctx context.Context, conf *latestconfig.Config, queryStr string) error
 		return fmt.Errorf("failed to parse query: %w", err)
 	}
 
-	// Add a custom function to the jq query to convert a private key to a public key.
-	code, err := gojq.Compile(query, gojq.WithFunction("public", 1, 1, func(_ any, xs []any) any {
-		var privateKey types.NoisePrivateKey
-		if err := privateKey.UnmarshalText([]byte(fmt.Sprintf("%v", xs[0]))); err != nil {
-			return fmt.Errorf("failed to parse private key: %w", err)
-		}
+	funcs := []gojq.CompilerOption{
+		// Get the public key from a private key.
+		gojq.WithFunction("public", 1, 1, func(_ any, xs []any) any {
+			var privateKey types.NoisePrivateKey
+			if err := privateKey.UnmarshalText([]byte(fmt.Sprintf("%v", xs[0]))); err != nil {
+				return fmt.Errorf("failed to parse private key: %w", err)
+			}
 
-		return privateKey.Public().String()
-	}))
+			return privateKey.Public().String()
+		}),
+		// Get the next address in a subnet.
+		gojq.WithFunction("next", 1, 1, func(_ any, xs []any) any {
+			addr, err := netip.ParseAddr(fmt.Sprintf("%v", xs[0]))
+			if err != nil {
+				return fmt.Errorf("failed to parse IP address: %w", err)
+			}
+
+			return addr.Next().String()
+		}),
+	}
+
+	code, err := gojq.Compile(query, funcs...)
 	if err != nil {
 		return fmt.Errorf("failed to compile query: %w", err)
 	}

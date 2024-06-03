@@ -109,14 +109,10 @@ func main() {
 								Name:    "listen-port",
 								Aliases: []string{"l"},
 								Usage:   "The port to listen on",
-								Value:   51820,
 							},
 							&cli.StringSliceFlag{
 								Name:  "ip",
-								Usage: "The IP address/s to assign to the peer",
-								// Use the	100.64.0.0/24 subnet as the default.
-								// This CIDR is chosen to reduce the likelihood of conflicts.
-								Value: cli.NewStringSlice("100.64.0.1"),
+								Usage: "The IP address/s to assign to the peer, if not set a random IPv6 address will be assigned",
 							},
 							&cli.StringFlag{
 								Name:    "domain",
@@ -357,7 +353,7 @@ func main() {
 					},
 					&cli.BoolFlag{
 						Name:  "nat64",
-						Usage: "Enable DNS64/NAT64 for IPv4-only destinations",
+						Usage: "Enable DNS64/NAT64 (IPv6 to IPv4 translation)",
 						Value: true,
 					},
 					&cli.StringFlag{

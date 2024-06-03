@@ -9,6 +9,7 @@ machines?".
 * Wire compatible with WireGuard.
 * Userspace and unprivileged.
 * Integrated service discovery.
+* First class support for IPv6.
 * Cross platform.
 
 ## Components
