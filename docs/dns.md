@@ -19,8 +19,8 @@ variety of upstream protocols including DNS over TLS.
 
 ### Initialize Configuration
 
-The `config init` command will generate a new private key and populate the
-configuration file with the provided options.
+The `config init` command will generate a new private key, a new [IPv6 ULA](https://en.wikipedia.org/wiki/Unique_local_address) 
+address, and populate the configuration file with the provided options.
 
 ```sh
 nsh config init -c resolver.yaml -n resolver
