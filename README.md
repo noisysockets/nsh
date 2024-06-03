@@ -16,6 +16,7 @@ machines?".
 
 For more information on the individual components and how to get started, see the following:
 
+* [Configuration](./docs/config.md)
 * [Router](./docs/router.md)
 * [DNS Server](./docs/dns.md)
 
