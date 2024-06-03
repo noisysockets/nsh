@@ -118,20 +118,43 @@ docker run -d --name=nsh-server --rm -v nsh-config:/home/nonroot/.config/nsh/ -p
 
 ## Back to the Client
 
-### Export the Configuration
-
-You can now export the WireGuard configuration for use with the `wg-quick` command:
+### Export WireGuard Configuration
 
 ```sh
-nsh config export | sudo tee /etc/wireguard/nsh0.conf > /dev/null
+nsh config export --stripped | sudo tee /etc/wireguard/nsh0.conf > /dev/null
 ```
 
-### Start the Client
+### Setup Network Namespace
+
+To avoid conflicts with the host network, for this example we will connect to
+the server using a network namespace.
 
 ```sh
-sudo wg-quick up nsh0
-# Remove the default ipv4 route (so that all traffic is forced to use the tunnel)
-sudo ip route del default
+sudo mkdir -p /etc/netns/nsh-client-ns
+echo -e "nameserver $(nsh config show '.dns.servers[0]')\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
+sudo ip netns add nsh-client-ns
+sudo ip link add nsh0 type wireguard
+sudo ip link set dev nsh0 mtu 1280
+sudo ip link set nsh0 netns nsh-client-ns
+sudo ip netns exec nsh-client-ns wg setconf nsh0 /etc/wireguard/nsh0.conf
+sudo ip -n nsh-client-ns addr add "$(nsh config show '.ips[0]')/64" dev nsh0
+sudo ip -n nsh-client-ns link set nsh0 up
+sudo ip -6 -n nsh-client-ns route add default via $(nsh config show '(.peers[]|select(.name == "server")).ips[0]') dev nsh0
+```
+
+### Access the Network Namespace
+
+```sh
+sudo ip netns exec nsh-client-ns sudo -u $USER bash
 ```
 
 Congratulations you are now running an IPv6 only network (with NAT64/DNS64 for legacy IPv4 addresses).
+
+### Cleanup
+
+To remove the network namespace and WireGuard interface when you are finished.
+
+```sh
+sudo ip -n nsh-client-ns link del nsh0
+sudo ip netns del nsh-client-ns
+```

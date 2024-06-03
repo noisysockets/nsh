@@ -81,6 +81,7 @@ sudo mkdir -p /etc/netns/nsh-client-ns
 echo -e "nameserver $(nsh config show -c router.yaml '.ips[0]')\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
 sudo ip netns add nsh-client-ns
 sudo ip link add nsh0 type wireguard
+sudo ip link set dev nsh0 mtu 1280
 sudo ip link set nsh0 netns nsh-client-ns
 sudo ip netns exec nsh-client-ns wg setconf nsh0 /etc/wireguard/nsh0.conf
 sudo ip -n nsh-client-ns addr add "$(nsh config show -c client.yaml '.ips[0]')/64" dev nsh0
@@ -97,7 +98,7 @@ You can now attempt to access the internet using the router as a gateway.
 The following will return the public IP address of the router.
 
 ```sh
-sudo ip netns exec nsh-client-ns curl https://ipv6.icanhazip.com
+sudo ip netns exec nsh-client-ns sudo -u $USER curl https://ipv6.icanhazip.com
 ```
 
 ##### IPv4
@@ -106,7 +107,7 @@ By default the router implements [NAT64](https://tools.ietf.org/html/rfc6146),
 which will allow you to access IPv4 resources on IPv6 only networks.
 
 ```sh
-sudo ip netns exec nsh-client-ns curl https://ipv4.icanhazip.com
+sudo ip netns exec nsh-client-ns sudo -u $USER curl https://ipv4.icanhazip.com
 ```
 
 #### Cleanup

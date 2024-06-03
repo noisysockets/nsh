@@ -74,6 +74,7 @@ sudo mkdir -p /etc/netns/nsh-client-ns
 echo -e "nameserver $(nsh config show -c resolver.yaml '.ips[0]')\nsearch my.nzzy.net.\n" | sudo tee /etc/netns/nsh-client-ns/resolv.conf > /dev/null
 sudo ip netns add nsh-client-ns
 sudo ip link add nsh0 type wireguard
+sudo ip link set dev nsh0 mtu 1280
 sudo ip link set nsh0 netns nsh-client-ns
 sudo ip netns exec nsh-client-ns wg setconf nsh0 /etc/wireguard/nsh0.conf
 sudo ip -n nsh-client-ns addr add "$(nsh config show -c client.yaml '.ips[0]')/64" dev nsh0
@@ -91,7 +92,7 @@ The network domain can be changed by passing the `--domain` flag to the
 `config init` command.
 
 ```sh
-sudo ip netns exec nsh-client-ns dig +search resolver AAAA
+sudo ip netns exec nsh-client-ns sudo -u $USER dig +search resolver AAAA
 ```
 
 ##### Internet Name
@@ -99,7 +100,7 @@ sudo ip netns exec nsh-client-ns dig +search resolver AAAA
 We can also use the resolver to recursively resolve internet names.
 
 ```sh
-sudo ip netns exec nsh-client-ns dig google.com AAAA
+sudo ip netns exec nsh-client-ns sudo -u $USER dig google.com AAAA
 ```
 
 ###### IPv4
@@ -109,7 +110,7 @@ which will translate IPv4 only addresses to IPv6 (using the well known prefix
 `64:ff9b::/96`).
 
 ```sh
-sudo ip netns exec nsh-client-ns dig ipv4.google.com AAAA
+sudo ip netns exec nsh-client-ns sudo -u $USER dig ipv4.google.com AAAA
 ```
 
 #### Cleanup
