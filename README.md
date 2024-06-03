@@ -17,8 +17,14 @@ machines?".
 For more information on the individual components and how to get started, see the following:
 
 * [Configuration](./docs/config.md)
-* [Router](./docs/router.md)
 * [DNS Server](./docs/dns.md)
+* [Router](./docs/router.md)
+
+## Examples
+
+For some example use cases, see the following: 
+
+* [Docker VPN Server](./docs/docker_vpn.md)
 
 ## Credits
 

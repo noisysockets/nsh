@@ -61,7 +61,7 @@ nsh up -c resolver.yaml --enable-dns
 #### Export WireGuard Configuration
 
 ```sh
-sudo nsh config export -c client.yaml -o /etc/wireguard/nsh0.conf --stripped
+nsh config export -c client.yaml --stripped | sudo tee /etc/wireguard/nsh0.conf > /dev/null
 ```
 
 #### Setup Network Namespace
