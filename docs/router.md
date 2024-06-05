@@ -8,7 +8,7 @@ internet (or other private networks).
 
 * TCP/UDP Forwarding
 * Limited ICMPv4/ICMPv6 forwarding (ping)
-* NAT64 (IPv6 to IPv4 translation)
+* NAT64 (IPv4 to IPv6 translation)
 * Recursive DNS Resolver
 
 ## Getting Started
@@ -104,7 +104,9 @@ sudo ip netns exec nsh-client-ns sudo -u $USER curl https://ipv6.icanhazip.com
 ##### IPv4
 
 By default the router implements [NAT64](https://tools.ietf.org/html/rfc6146),
-which will allow you to access IPv4 resources on IPv6 only networks.
+which will translate IPv4 only addresses to IPv6 (using the well known prefix 
+`64:ff9b::/96`). Which will allow you to access IPv4 resources from IPv6 only 
+networks.
 
 ```sh
 sudo ip netns exec nsh-client-ns sudo -u $USER curl https://ipv4.icanhazip.com

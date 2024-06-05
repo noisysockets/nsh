@@ -6,7 +6,7 @@ machines?".
 
 ## Features
 
-* Wire compatible with WireGuard.
+* Wire-compatible with WireGuard.
 * Userspace and unprivileged.
 * Integrated service discovery.
 * First class support for IPv6.

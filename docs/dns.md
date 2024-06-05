@@ -13,7 +13,7 @@ variety of upstream protocols including DNS over TLS.
 
 * DNS over UDP/TCP
 * Recursive DNS Resolver
-* DNS64 (IPv6 to IPv4 translation)
+* DNS64 (IPv4 to IPv6 translation)
 
 ## Getting Started
 
