@@ -28,6 +28,7 @@ docker:
       && rm -rf /var/lib/apt/lists/*
   COPY LICENSE /usr/local/share/nsh/
   ARG TARGETARCH
+  ENV container=docker
   COPY (+build/nsh --GOOS=linux --GOARCH=${TARGETARCH}) /nsh
   USER 65532:65532
   ENTRYPOINT ["/nsh"]
@@ -42,7 +43,10 @@ build:
   RUN go mod download
   COPY . .
   ARG VERSION=dev
-  RUN CGO_ENABLED=0 go build --ldflags "-s -X 'github.com/noisysockets/nsh/internal/constants.Version=${VERSION}'" -o nsh main.go
+  RUN --secret TELEMETRY_TOKEN=telemetry_token \
+    CGO_ENABLED=0 go build -o nsh --ldflags "-s \
+    -X 'github.com/noisysockets/nsh/internal/constants.Version=${VERSION}' \
+    -X 'github.com/noisysockets/nsh/internal/constants.TelemetryToken=${TELEMETRY_TOKEN}'"
   SAVE ARTIFACT ./nsh AS LOCAL dist/nsh-${GOOS}-${GOARCH}
 
 tidy:

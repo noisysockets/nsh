@@ -1,16 +1,17 @@
 module github.com/noisysockets/nsh
 
-go 1.22.0
+go 1.22.4
 
 require (
 	github.com/adrg/xdg v0.4.0
 	github.com/gofrs/flock v0.8.1
 	github.com/itchyny/gojq v0.12.15
 	github.com/miekg/dns v1.1.59
-	github.com/noisysockets/netutil v0.7.0
-	github.com/noisysockets/network v0.17.0
-	github.com/noisysockets/noisysockets v0.26.0
+	github.com/noisysockets/netutil v0.8.1
+	github.com/noisysockets/network v0.19.0
+	github.com/noisysockets/noisysockets v0.26.1
 	github.com/noisysockets/resolver v0.12.0
+	github.com/noisysockets/telemetry v0.4.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/sync v0.7.0
@@ -18,6 +19,7 @@ require (
 )
 
 require (
+	connectrpc.com/connect v1.16.2 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/avast/retry-go/v4 v4.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
@@ -37,5 +39,6 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )

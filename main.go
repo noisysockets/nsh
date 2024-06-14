@@ -10,11 +10,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/netip"
 	"os"
+	"runtime"
+	"time"
 
 	"github.com/adrg/xdg"
 	"github.com/noisysockets/network"
@@ -28,6 +31,8 @@ import (
 	"github.com/noisysockets/nsh/internal/constants"
 	"github.com/noisysockets/nsh/internal/service"
 	"github.com/noisysockets/nsh/internal/util"
+	"github.com/noisysockets/telemetry"
+	"github.com/noisysockets/telemetry/gen/telemetry/v1alpha1"
 
 	"github.com/urfave/cli/v2"
 )
@@ -87,6 +92,54 @@ func main() {
 		return nil
 	}
 
+	// Collect anonymous usage statistics.
+	var telemetryReporter *telemetry.Reporter
+
+	initTelemetry := func(c *cli.Context) error {
+		telemetryReporter = telemetry.NewReporter(c.Context, logger, constants.TelemetryURL, constants.TelemetryToken)
+
+		// Some basic system information.
+		info := map[string]string{
+			"os":      runtime.GOOS,
+			"arch":    runtime.GOARCH,
+			"num_cpu": fmt.Sprintf("%d", runtime.NumCPU()),
+		}
+
+		// Are we running in a container?
+		if os.Getenv("container") != "" {
+			info["container"] = os.Getenv("container")
+		}
+
+		telemetryReporter.ReportEvent(&v1alpha1.TelemetryEvent{
+			Kind:   v1alpha1.TelemetryEventKind_INFO,
+			Name:   "ApplicationStart",
+			Values: info,
+		})
+
+		return nil
+	}
+
+	shutdownTelemetry := func(c *cli.Context) error {
+		if telemetryReporter == nil {
+			return nil
+		}
+
+		telemetryReporter.ReportEvent(&v1alpha1.TelemetryEvent{
+			Kind: v1alpha1.TelemetryEventKind_INFO,
+			Name: "ApplicationStop",
+		})
+
+		// Don't want to block the shutdown of the application for too long.
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		if err := telemetryReporter.Shutdown(ctx); err != nil {
+			logger.Error("Failed to close telemetry reporter", slog.Any("error", err))
+		}
+
+		return nil
+	}
+
 	app := &cli.App{
 		Name:    "nsh",
 		Usage:   "The Noisy Sockets CLI",
@@ -120,7 +173,8 @@ func main() {
 								Usage:   "The network domain",
 							},
 						}, sharedFlags...),
-						Before: initLogger,
+						Before: beforeAll(initLogger, initTelemetry),
+						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return configcmd.Init(logger,
 								c.String("config"),
@@ -141,7 +195,8 @@ func main() {
 								Value:   "-",
 							},
 						}, sharedFlags...),
-						Before: initLogger,
+						Before: beforeAll(initLogger, initTelemetry),
+						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return configcmd.Import(
 								logger,
@@ -165,7 +220,8 @@ func main() {
 								Value: false,
 							},
 						}, sharedFlags...),
-						Before: beforeAll(initLogger, loadConfig),
+						Before: beforeAll(initLogger, initTelemetry, loadConfig),
+						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return configcmd.Export(
 								conf,
@@ -179,7 +235,8 @@ func main() {
 						Flags:     sharedFlags,
 						Args:      true,
 						ArgsUsage: "query",
-						Before:    beforeAll(initLogger, loadConfig),
+						Before:    beforeAll(initLogger, initTelemetry, loadConfig),
+						After:     shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								_ = cli.ShowSubcommandHelp(c)
@@ -221,7 +278,8 @@ func main() {
 								Required: true,
 							},
 						}, sharedFlags...),
-						Before: beforeAll(initLogger, loadConfig),
+						Before: beforeAll(initLogger, initTelemetry, loadConfig),
+						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return peercmd.Add(
 								logger,
@@ -239,7 +297,8 @@ func main() {
 						Flags:     sharedFlags,
 						Args:      true,
 						ArgsUsage: "name | public-key",
-						Before:    beforeAll(initLogger, loadConfig),
+						Before:    beforeAll(initLogger, initTelemetry, loadConfig),
+						After:     shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								_ = cli.ShowSubcommandHelp(c)
@@ -276,7 +335,8 @@ func main() {
 								Required: true,
 							},
 						}, sharedFlags...),
-						Before: beforeAll(initLogger, loadConfig),
+						Before: beforeAll(initLogger, initTelemetry, loadConfig),
+						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return routecmd.Add(
 								logger,
@@ -292,7 +352,8 @@ func main() {
 						Flags:     sharedFlags,
 						Args:      true,
 						ArgsUsage: "destination",
-						Before:    beforeAll(initLogger, loadConfig),
+						Before:    beforeAll(initLogger, initTelemetry, loadConfig),
+						After:     shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							if c.Args().Len() != 1 {
 								_ = cli.ShowSubcommandHelp(c)
@@ -322,6 +383,8 @@ func main() {
 								Args:      true,
 								ArgsUsage: "address",
 								Flags:     sharedFlags,
+								Before:    beforeAll(initLogger, initTelemetry, loadConfig),
+								After:     shutdownTelemetry,
 								Action: func(c *cli.Context) error {
 									if c.Args().Len() != 1 {
 										_ = cli.ShowSubcommandHelp(c)
@@ -341,7 +404,7 @@ func main() {
 			},
 			{
 				Name:  "up",
-				Usage: "Start a Noisy Sockets server",
+				Usage: "Start Noisy Sockets",
 				Flags: append([]cli.Flag{
 					&cli.BoolFlag{
 						Name:  "enable-dns",
@@ -362,7 +425,8 @@ func main() {
 						Value: "64:ff9b::/96",
 					},
 				}, sharedFlags...),
-				Before: beforeAll(initLogger, loadConfig),
+				Before: beforeAll(initLogger, initTelemetry, loadConfig),
+				After:  shutdownTelemetry,
 				Action: func(c *cli.Context) error {
 					enableNAT64 := c.Bool("nat64")
 

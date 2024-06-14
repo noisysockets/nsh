@@ -54,6 +54,8 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Build and Push Image
+      env:
+        EARTHLY_SECRETS: "telemetry_token=${{ secrets.TELEMETRY_TOKEN }}"
       run: earthly --push +all --VERSION=${{ github.ref_name }}
 
     - name: Release

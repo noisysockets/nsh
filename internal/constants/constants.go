@@ -9,4 +9,8 @@
 
 package constants
 
-var Version = "dev"
+var (
+	TelemetryURL   = "https://telemetry.noisysockets.com/api"
+	TelemetryToken = "" // Populated at build time.
+	Version        = "dev"
+)

@@ -26,6 +26,13 @@ For some example use cases, see the following:
 
 * [Docker VPN Server](./docs/docker_vpn.md)
 
+## Telemetry
+
+By default the Noisy Sockets CLI gathers anonymous crash and usage statistics. 
+This anonymized data is processed on our servers within the EU and is not shared 
+with third parties. You can opt out of telemetry by setting the `NSH_NO_TELEMETRY=1` 
+environment variable.
+
 ## Credits
 
 Noisy Sockets is based on code originally from the [wireguard-go](https://git.zx2c4.com/wireguard-go) project by Jason A. Donenfeld.
