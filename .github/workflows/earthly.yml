@@ -23,6 +23,8 @@ jobs:
       run: earthly +lint
 
     - name: Build
+      env:
+        EARTHLY_SECRETS: "telemetry_token=none"
       run: |
         earthly +build
         earthly +docker
