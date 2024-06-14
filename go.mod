@@ -11,7 +11,7 @@ require (
 	github.com/noisysockets/network v0.19.0
 	github.com/noisysockets/noisysockets v0.26.1
 	github.com/noisysockets/resolver v0.12.0
-	github.com/noisysockets/telemetry v0.4.0
+	github.com/noisysockets/telemetry v0.5.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/sync v0.7.0

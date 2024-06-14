@@ -41,8 +41,8 @@ github.com/noisysockets/pinger v0.4.2 h1:J+ksTzJaJcersvrAdhWGfSD1QXcroGpjO85XQZa
 github.com/noisysockets/pinger v0.4.2/go.mod h1:vURwBVmoQtKHhzmRD4MNURVfAGEeNcK/gTWojvpnsYY=
 github.com/noisysockets/resolver v0.12.0 h1:JgY5t7/AgQBnur62rl+XuCQFV1zRmGRfuLvcuj+NTBk=
 github.com/noisysockets/resolver v0.12.0/go.mod h1:hdiodkk9METIY8Fzma3hp6xZgj0IcrZLLtpVzA/9DK0=
-github.com/noisysockets/telemetry v0.4.0 h1:zpgAFKtdJM/YN2bKKSz141+YV0GzJ0/qh7aGkLq+yIw=
-github.com/noisysockets/telemetry v0.4.0/go.mod h1:a4i6HsfmPPeasioqHhcJ9oxFqrWCEFFbms0gEjseVQU=
+github.com/noisysockets/telemetry v0.5.0 h1:XRc9R9lfcUoSsR8s3fRsKHaiPT8hUDOPO1PQW2ddJAw=
+github.com/noisysockets/telemetry v0.5.0/go.mod h1:a4i6HsfmPPeasioqHhcJ9oxFqrWCEFFbms0gEjseVQU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=

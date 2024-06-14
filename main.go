@@ -96,13 +96,18 @@ func main() {
 	var telemetryReporter *telemetry.Reporter
 
 	initTelemetry := func(c *cli.Context) error {
-		telemetryReporter = telemetry.NewReporter(c.Context, logger, constants.TelemetryURL, constants.TelemetryToken)
+		telemetryReporter = telemetry.NewReporter(c.Context, logger, telemetry.Configuration{
+			BaseURL:   constants.TelemetryURL,
+			AuthToken: constants.TelemetryToken,
+			Tags:      []string{"nsh"},
+		})
 
 		// Some basic system information.
 		info := map[string]string{
 			"os":      runtime.GOOS,
 			"arch":    runtime.GOARCH,
 			"num_cpu": fmt.Sprintf("%d", runtime.NumCPU()),
+			"version": constants.Version,
 		}
 
 		// Are we running in a container?
