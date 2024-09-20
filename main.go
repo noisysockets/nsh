@@ -425,7 +425,7 @@ func main() {
 						Usage: "The DNS64/NAT64 prefix",
 						Value: "64:ff9b::/96",
 					},
-					&cli.StringFlag{
+					&cli.StringSliceFlag{
 						Name:  "dns-upstream",
 						Usage: "Upstream DNS servers",
 					},
