@@ -426,8 +426,8 @@ func main() {
 						Value: "64:ff9b::/96",
 					},
 					&cli.StringSliceFlag{
-						Name:  "dns-upstream",
-						Usage: "Upstream DNS servers",
+						Name:  "dns-public-upstream",
+						Usage: "Upstream DNS servers to use for public queries",
 					},
 				}, sharedFlags...),
 				Before: beforeAll(initLogger, initTelemetry, loadConfig),
@@ -443,7 +443,7 @@ func main() {
 					var services []service.Service
 
 					if c.Bool("enable-dns") {
-						services = append(services, service.DNS(enableNAT64, nat64Prefix, c.StringSlice("dns-upstream")))
+						services = append(services, service.DNS(enableNAT64, nat64Prefix, c.StringSlice("dns-public-upstream")))
 					}
 
 					if c.Bool("enable-router") {

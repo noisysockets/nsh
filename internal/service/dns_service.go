@@ -24,6 +24,7 @@ import (
 	"github.com/noisysockets/network"
 	"github.com/noisysockets/noisysockets/types"
 	"github.com/noisysockets/resolver"
+	"golang.org/x/net/publicsuffix"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -31,17 +32,17 @@ var _ Service = (*DNSService)(nil)
 
 // DNSService is a DNS service that provides recursive and authoritative DNS resolution.
 type DNSService struct {
-	enableNAT64     bool
-	nat64Prefix     netip.Prefix
-	upstreamServers []string
+	enableNAT64           bool
+	nat64Prefix           netip.Prefix
+	publicUpstreamServers []string
 }
 
 // DNS returns a new DNS service.
-func DNS(enableNAT64 bool, nat64Prefix netip.Prefix, upstreamServers []string) *DNSService {
+func DNS(enableNAT64 bool, nat64Prefix netip.Prefix, publicUpstreamServers []string) *DNSService {
 	return &DNSService{
-		enableNAT64:     enableNAT64,
-		nat64Prefix:     nat64Prefix,
-		upstreamServers: upstreamServers,
+		enableNAT64:           enableNAT64,
+		nat64Prefix:           nat64Prefix,
+		publicUpstreamServers: publicUpstreamServers,
 	}
 }
 
@@ -55,15 +56,22 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 	slog.Info("Registering recursive DNS handler", slog.String("zone", "."))
 
-	var upstreamResolver resolver.Resolver
-	if len(s.upstreamServers) > 0 {
-		slog.Info("Using user-defined upstream resolvers")
+	// Use the system resolver as the private resolver.
+	privateResolver, err := resolver.System(nil)
+	if err != nil {
+		return fmt.Errorf("failed to get system resolver: %w", err)
+	}
+
+	// Allow overriding the upstream to use for public DNS queries.
+	var publicResolver resolver.Resolver = privateResolver
+	if len(s.publicUpstreamServers) > 0 {
+		slog.Info("Using user-defined public upstream resolvers")
 
 		var resolvers []resolver.Resolver
-		for _, server := range s.upstreamServers {
+		for _, server := range s.publicUpstreamServers {
 			var serverAddrPort types.MaybeAddrPort
 			if err := serverAddrPort.UnmarshalText([]byte(server)); err != nil {
-				return fmt.Errorf("failed to parse upstream server: %w", err)
+				return fmt.Errorf("failed to parse public upstream server: %w", err)
 			}
 
 			resolvers = append(resolvers, resolver.DNS(resolver.DNSResolverConfig{
@@ -71,20 +79,17 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 			}))
 		}
 
-		upstreamResolver = resolver.RoundRobin(resolvers...)
-	} else {
-		slog.Info("Using system resolver")
-
-		upstreamResolver, err = resolver.System(nil)
-		if err != nil {
-			return fmt.Errorf("failed to get system resolver: %w", err)
-		}
+		publicResolver = resolver.RoundRobin(resolvers...)
 	}
 
 	if s.enableNAT64 {
 		slog.Info("Enabling DNS64", slog.String("prefix", s.nat64Prefix.String()))
 
-		upstreamResolver = resolver.DNS64(upstreamResolver, &resolver.DNS64ResolverConfig{
+		privateResolver = resolver.DNS64(privateResolver, &resolver.DNS64ResolverConfig{
+			Prefix: &s.nat64Prefix,
+		})
+
+		publicResolver = resolver.DNS64(publicResolver, &resolver.DNS64ResolverConfig{
 			Prefix: &s.nat64Prefix,
 		})
 	}
@@ -121,6 +126,15 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 				slog.String("qType", dns.TypeToString[q.Qtype]))
 
 			logger.Debug("Received DNS question")
+
+			var upstreamResolver resolver.Resolver
+			if _, icann := publicsuffix.PublicSuffix(strings.ToLower(q.Name)); icann {
+				logger.Debug("Public query")
+				upstreamResolver = publicResolver
+			} else {
+				logger.Debug("Private query")
+				upstreamResolver = privateResolver
+			}
 
 			addrs, err := upstreamResolver.LookupNetIP(ctx, "ip", q.Name)
 			if err != nil {
