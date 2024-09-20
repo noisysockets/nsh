@@ -127,8 +127,13 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 			logger.Debug("Received DNS question")
 
+			domain := dns.CanonicalName(q.Name)
+			if domain != "." {
+				domain = strings.TrimRight(domain, ".")
+			}
+
 			var upstreamResolver resolver.Resolver
-			if _, icann := publicsuffix.PublicSuffix(strings.ToLower(q.Name)); icann {
+			if _, icann := publicsuffix.PublicSuffix(domain); icann {
 				logger.Debug("Public query")
 				upstreamResolver = publicResolver
 			} else {
