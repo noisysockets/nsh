@@ -22,6 +22,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/noisysockets/network"
+	"github.com/noisysockets/noisysockets/types"
 	"github.com/noisysockets/resolver"
 	"golang.org/x/sync/errgroup"
 )
@@ -30,17 +31,17 @@ var _ Service = (*DNSService)(nil)
 
 // DNSService is a DNS service that provides recursive and authoritative DNS resolution.
 type DNSService struct {
-	logger      *slog.Logger
-	enableNAT64 bool
-	nat64Prefix netip.Prefix
+	enableNAT64     bool
+	nat64Prefix     netip.Prefix
+	upstreamServers []string
 }
 
 // DNS returns a new DNS service.
-func DNS(logger *slog.Logger, enableNAT64 bool, nat64Prefix netip.Prefix) *DNSService {
+func DNS(enableNAT64 bool, nat64Prefix netip.Prefix, upstreamServers []string) *DNSService {
 	return &DNSService{
-		logger:      logger,
-		enableNAT64: enableNAT64,
-		nat64Prefix: nat64Prefix,
+		enableNAT64:     enableNAT64,
+		nat64Prefix:     nat64Prefix,
+		upstreamServers: upstreamServers,
 	}
 }
 
@@ -52,16 +53,36 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 
 	mux := dns.NewServeMux()
 
-	s.logger.Info("Registering recursive DNS handler", slog.String("zone", "."))
+	slog.Info("Registering recursive DNS handler", slog.String("zone", "."))
 
-	// TODO: make configurable.
-	upstreamResolver, err := resolver.System(nil)
-	if err != nil {
-		return fmt.Errorf("failed to get system resolver: %w", err)
+	var upstreamResolver resolver.Resolver
+	if len(s.upstreamServers) > 0 {
+		slog.Info("Using user-defined upstream resolvers")
+
+		var resolvers []resolver.Resolver
+		for _, server := range s.upstreamServers {
+			var serverAddrPort types.MaybeAddrPort
+			if err := serverAddrPort.UnmarshalText([]byte(server)); err != nil {
+				return fmt.Errorf("failed to parse upstream server: %w", err)
+			}
+
+			resolvers = append(resolvers, resolver.DNS(resolver.DNSResolverConfig{
+				Server: netip.AddrPort(serverAddrPort),
+			}))
+		}
+
+		upstreamResolver = resolver.RoundRobin(resolvers...)
+	} else {
+		slog.Info("Using system resolver")
+
+		upstreamResolver, err = resolver.System(nil)
+		if err != nil {
+			return fmt.Errorf("failed to get system resolver: %w", err)
+		}
 	}
 
 	if s.enableNAT64 {
-		s.logger.Info("Enabling DNS64", slog.String("prefix", s.nat64Prefix.String()))
+		slog.Info("Enabling DNS64", slog.String("prefix", s.nat64Prefix.String()))
 
 		upstreamResolver = resolver.DNS64(upstreamResolver, &resolver.DNS64ResolverConfig{
 			Prefix: &s.nat64Prefix,
@@ -73,7 +94,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		reply.SetReply(req)
 		reply.RecursionAvailable = true
 
-		logger := s.logger.With(
+		logger := slog.With(
 			slog.String("zone", "."),
 			slog.String("remoteAddr", w.RemoteAddr().String()),
 			slog.Int("id", int(req.Id)))
@@ -161,7 +182,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		}
 	})
 
-	s.logger.Info("Registering authoritive DNS handler", slog.String("zone", domain))
+	slog.Info("Registering authoritive DNS handler", slog.String("zone", domain))
 
 	mux.HandleFunc(domain, func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := &dns.Msg{}
@@ -169,7 +190,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		reply.Authoritative = true
 		reply.RecursionAvailable = true
 
-		logger := s.logger.With(
+		logger := slog.With(
 			slog.String("zone", domain),
 			slog.String("remoteAddr", w.RemoteAddr().String()),
 			slog.Int("id", int(req.Id)))
@@ -302,7 +323,7 @@ func (s *DNSService) Serve(ctx context.Context, net network.Network) error {
 		})
 	}
 
-	s.logger.Info("Listening for DNS queries", slog.String("address", lis.Addr().String()))
+	slog.Info("Listening for DNS queries", slog.String("address", lis.Addr().String()))
 
 	if err := g.Wait(); err != nil && !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("failed to serve DNS: %w", err)

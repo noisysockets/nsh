@@ -17,10 +17,10 @@ import (
 	"path/filepath"
 
 	"github.com/noisysockets/noisysockets/config"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	configtypes "github.com/noisysockets/noisysockets/config/types"
 )
 
-func Export(conf *latestconfig.Config, wireGuardConfigPath string, stripped bool) error {
+func Export(conf configtypes.Config, wireGuardConfigPath string, stripped bool) error {
 	var w io.Writer
 	if wireGuardConfigPath == "-" {
 		w = os.Stdout

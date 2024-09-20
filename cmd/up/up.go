@@ -19,15 +19,15 @@ import (
 	"syscall"
 
 	"github.com/noisysockets/noisysockets"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	configtypes "github.com/noisysockets/noisysockets/config/types"
 	"github.com/noisysockets/nsh/internal/service"
 	"golang.org/x/sync/errgroup"
 )
 
-func Up(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config, services []service.Service) error {
-	logger.Debug("Opening WireGuard network")
+func Up(ctx context.Context, conf configtypes.Config, services []service.Service) error {
+	slog.Debug("Opening WireGuard network")
 
-	net, err := noisysockets.OpenNetwork(logger, conf)
+	net, err := noisysockets.OpenNetwork(slog.Default(), conf)
 	if err != nil {
 		return fmt.Errorf("failed to open WireGuard network: %w", err)
 	}
@@ -44,7 +44,7 @@ func Up(ctx context.Context, logger *slog.Logger, conf *latestconfig.Config, ser
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-sig:
-			logger.Debug("Received signal, shutting down")
+			slog.Debug("Received signal, shutting down")
 			return context.Canceled
 		}
 	})

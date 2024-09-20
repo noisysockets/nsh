@@ -12,22 +12,22 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"os"
 
-	"github.com/noisysockets/netutil/ula"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha3"
 	"github.com/noisysockets/noisysockets/types"
 	"github.com/noisysockets/nsh/internal/util"
-	"github.com/noisysockets/nsh/internal/validate"
+	"github.com/noisysockets/util/cidr"
 )
 
-func Init(logger *slog.Logger, configPath string, hostname string,
+func Init(configPath string, hostname string,
 	listenPort int, ips []string, domain string) error {
 	if hostname == "" {
 		var err error
 		hostname, err = os.Hostname()
 		if err != nil {
-			logger.Warn("Error getting hostname", slog.Any("error", err))
+			slog.Warn("Error getting hostname", slog.Any("error", err))
 		}
 	}
 
@@ -36,17 +36,23 @@ func Init(logger *slog.Logger, configPath string, hostname string,
 		listenPort = util.RandomInt(49152, 65536)
 	}
 
+	var addrs []netip.Addr
 	if len(ips) > 0 {
-		if err := validate.IPs(ips); err != nil {
-			return fmt.Errorf("invalid IP address: %w", err)
+		for _, ip := range ips {
+			addr, err := netip.ParseAddr(ip)
+			if err != nil {
+				return fmt.Errorf("invalid IP address: %w", err)
+			}
+
+			addrs = append(addrs, addr)
 		}
 	} else {
-		prefix, err := ula.Generate()
+		prefix, err := cidr.Generate()
 		if err != nil {
 			return fmt.Errorf("failed to generate random ULA prefix: %w", err)
 		}
 
-		ips = append(ips, prefix.Addr().Next().String())
+		addrs = append(addrs, prefix.Addr().Next())
 	}
 
 	privateKey, err := types.NewPrivateKey()
@@ -54,12 +60,12 @@ func Init(logger *slog.Logger, configPath string, hostname string,
 		return fmt.Errorf("failed to generate private key: %w", err)
 	}
 
-	return util.UpdateConfig(logger, configPath, func(_ *latestconfig.Config) (*latestconfig.Config, error) {
+	return util.UpdateConfig(configPath, func(_ *latestconfig.Config) (*latestconfig.Config, error) {
 		conf := &latestconfig.Config{
 			Name:       hostname,
 			ListenPort: uint16(listenPort),
 			PrivateKey: privateKey.String(),
-			IPs:        ips,
+			IPs:        addrs,
 		}
 
 		if domain != "" {

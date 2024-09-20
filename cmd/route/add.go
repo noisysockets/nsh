@@ -12,18 +12,17 @@ package route
 import (
 	"errors"
 	"fmt"
-	"log/slog"
+	"net/netip"
 
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha3"
 	"github.com/noisysockets/nsh/internal/util"
-	"github.com/noisysockets/nsh/internal/validate"
 )
 
-func Add(logger *slog.Logger, configPath, destination, via string) error {
-	return util.UpdateConfig(logger, configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
+func Add(configPath, destination, via string) error {
+	return util.UpdateConfig(configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
 		// Do we already have a route with this destination?
 		for _, routeConf := range conf.Routes {
-			if routeConf.Destination == destination {
+			if routeConf.Destination.String() == destination {
 				return nil, errors.New("route already exists")
 			}
 		}
@@ -40,13 +39,14 @@ func Add(logger *slog.Logger, configPath, destination, via string) error {
 			return nil, errors.New("router peer not found")
 		}
 
-		if err := validate.CIDR(destination); err != nil {
+		destinationPrefix, err := netip.ParsePrefix(destination)
+		if err != nil {
 			return nil, fmt.Errorf("invalid destination: %w", err)
 		}
 
 		// Add the new route.
 		conf.Routes = append(conf.Routes, latestconfig.RouteConfig{
-			Destination: destination,
+			Destination: destinationPrefix,
 			Via:         via,
 		})
 

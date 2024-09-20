@@ -12,16 +12,16 @@ package peer
 import (
 	"errors"
 	"fmt"
-	"log/slog"
+	"net/netip"
 
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha3"
 	"github.com/noisysockets/noisysockets/types"
 	"github.com/noisysockets/nsh/internal/util"
 	"github.com/noisysockets/nsh/internal/validate"
 )
 
-func Add(logger *slog.Logger, configPath, name, publicKey, endpoint string, ips []string) error {
-	return util.UpdateConfig(logger, configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
+func Add(configPath, name, publicKey, endpoint string, ips []string) error {
+	return util.UpdateConfig(configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
 		// Do we already have a peer with this name or public key?
 		for _, peerConf := range conf.Peers {
 			if peerConf.Name == name || peerConf.PublicKey == publicKey {
@@ -35,8 +35,14 @@ func Add(logger *slog.Logger, configPath, name, publicKey, endpoint string, ips 
 			return nil, fmt.Errorf("invalid public key: %w", err)
 		}
 
-		if err := validate.IPs(ips); err != nil {
-			return nil, fmt.Errorf("invalid IP address: %w", err)
+		var addrs []netip.Addr
+		for _, ip := range ips {
+			addr, err := netip.ParseAddr(ip)
+			if err != nil {
+				return nil, fmt.Errorf("invalid IP address: %w", err)
+			}
+
+			addrs = append(addrs, addr)
 		}
 
 		if endpoint != "" {
@@ -50,7 +56,7 @@ func Add(logger *slog.Logger, configPath, name, publicKey, endpoint string, ips 
 			Name:      name,
 			PublicKey: publicKey,
 			Endpoint:  endpoint,
-			IPs:       ips,
+			IPs:       addrs,
 		})
 
 		return conf, nil

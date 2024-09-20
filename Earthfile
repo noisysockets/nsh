@@ -19,19 +19,12 @@ all:
   SAVE ARTIFACT ./checksums.txt AS LOCAL dist/checksums.txt
 
 docker:
-  FROM debian:bookworm-slim
-  RUN groupadd -g 65532 nonroot \
-    && useradd -u 65532 -g 65532 -s /sbin/nologin -m nonroot
-  # We need a ping SUID binary for ICMP forwarding to work.
-  RUN apt update \
-      && apt install -y iputils-ping \
-      && rm -rf /var/lib/apt/lists/*
-  COPY LICENSE /usr/local/share/nsh/
-  ARG TARGETARCH
+  FROM registry.dpeckett.dev/debian:bookworm-ultraslim
   ENV container=docker
-  COPY (+build/nsh --GOOS=linux --GOARCH=${TARGETARCH}) /nsh
-  USER 65532:65532
-  ENTRYPOINT ["/nsh"]
+  COPY LICENSE /usr/share/doc/nsh/copyright
+  ARG TARGETARCH
+  COPY (+build/nsh --GOOS=linux --GOARCH=${TARGETARCH}) /usr/bin/nsh
+  ENTRYPOINT ["/usr/bin/nsh"]
   ARG VERSION=dev
   SAVE IMAGE --push ghcr.io/noisysockets/nsh:${VERSION}
   SAVE IMAGE --push ghcr.io/noisysockets/nsh:latest
@@ -43,10 +36,8 @@ build:
   RUN go mod download
   COPY . .
   ARG VERSION=dev
-  RUN --secret TELEMETRY_TOKEN=telemetry_token \
-    CGO_ENABLED=0 go build -o nsh --ldflags "-s \
-    -X 'github.com/noisysockets/nsh/internal/constants.Version=${VERSION}' \
-    -X 'github.com/noisysockets/nsh/internal/constants.TelemetryToken=${TELEMETRY_TOKEN}'"
+  RUN CGO_ENABLED=0 go build -o nsh --ldflags "-s \
+    -X 'github.com/noisysockets/nsh/internal/constants.Version=${VERSION}'"
   SAVE ARTIFACT ./nsh AS LOCAL dist/nsh-${GOOS}-${GOARCH}
 
 tidy:

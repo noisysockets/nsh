@@ -158,3 +158,9 @@ To remove the network namespace and WireGuard interface when you are finished.
 sudo ip -n nsh-client-ns link del nsh0
 sudo ip netns del nsh-client-ns
 ```
+
+To stop the server:
+
+```sh
+docker stop nsh-server
+```

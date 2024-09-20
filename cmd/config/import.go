@@ -10,18 +10,18 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/noisysockets/noisysockets/config"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha3"
 	"github.com/noisysockets/nsh/internal/util"
 )
 
-func Import(logger *slog.Logger, configPath, wireGuardConfigPath string) error {
+func Import(configPath, wireGuardConfigPath string) error {
 	var r io.Reader
 	if wireGuardConfigPath == "-" {
 		r = os.Stdin
@@ -34,7 +34,7 @@ func Import(logger *slog.Logger, configPath, wireGuardConfigPath string) error {
 		r = wireGuardConfigFile
 	}
 
-	return util.UpdateConfig(logger, configPath, func(_ *latestconfig.Config) (*latestconfig.Config, error) {
+	return util.UpdateConfig(configPath, func(_ *latestconfig.Config) (*latestconfig.Config, error) {
 		conf, err := config.FromINI(r)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing WireGuard config: %w", err)
@@ -44,6 +44,11 @@ func Import(logger *slog.Logger, configPath, wireGuardConfigPath string) error {
 			return nil, fmt.Errorf("failed to create config directory: %w", err)
 		}
 
-		return conf, nil
+		versionedConf, ok := conf.(*latestconfig.Config)
+		if !ok {
+			return nil, errors.New("expected config to be automatically migrated to latest version")
+		}
+
+		return versionedConf, nil
 	})
 }

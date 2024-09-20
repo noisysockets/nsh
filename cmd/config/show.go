@@ -16,14 +16,14 @@ import (
 	"os"
 
 	"github.com/itchyny/gojq"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	configtypes "github.com/noisysockets/noisysockets/config/types"
 	"github.com/noisysockets/noisysockets/types"
 	"gopkg.in/yaml.v3"
 )
 
 // Show queries the config with the provided jq syntax query and prints the
 // result to stdout as YAML.
-func Show(ctx context.Context, conf *latestconfig.Config, queryStr string) error {
+func Show(ctx context.Context, conf configtypes.Config, queryStr string) error {
 	query, err := gojq.Parse(queryStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse query: %w", err)

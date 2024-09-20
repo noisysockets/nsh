@@ -18,11 +18,11 @@ import (
 
 	"github.com/gofrs/flock"
 	"github.com/noisysockets/noisysockets/config"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha3"
 )
 
 // UpdateConfig performs an atomic update on the given config file.
-func UpdateConfig(logger *slog.Logger, configPath string, update func(*latestconfig.Config) (*latestconfig.Config, error)) error {
+func UpdateConfig(configPath string, update func(*latestconfig.Config) (*latestconfig.Config, error)) error {
 	lockPath := configPath + ".lock"
 	lock := flock.New(lockPath)
 	locked, err := lock.TryLock()
@@ -34,11 +34,11 @@ func UpdateConfig(logger *slog.Logger, configPath string, update func(*latestcon
 	}
 	defer func() {
 		if err := lock.Unlock(); err != nil {
-			logger.Error("Error releasing lock", slog.Any("error", err))
+			slog.Error("Error releasing lock", slog.Any("error", err))
 		}
 
 		if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
-			logger.Error("Error removing lock file", slog.Any("error", err))
+			slog.Error("Error removing lock file", slog.Any("error", err))
 		}
 	}()
 
@@ -49,16 +49,22 @@ func UpdateConfig(logger *slog.Logger, configPath string, update func(*latestcon
 		}
 	}
 
-	var conf *latestconfig.Config
+	var versionedConf *latestconfig.Config
 	if configFile != nil {
-		conf, err = config.FromYAML(configFile)
+		conf, err := config.FromYAML(configFile)
 		_ = configFile.Close()
 		if err != nil {
 			return fmt.Errorf("error parsing config: %w", err)
 		}
+
+		var ok bool
+		versionedConf, ok = conf.(*latestconfig.Config)
+		if !ok {
+			return errors.New("expected config to be automatically migrated to latest version")
+		}
 	}
 
-	updatedConf, err := update(conf)
+	updatedConf, err := update(versionedConf)
 	if err != nil {
 		return err
 	}

@@ -12,32 +12,32 @@ package dns
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha3"
+	"github.com/noisysockets/noisysockets/types"
 	"github.com/noisysockets/nsh/internal/util"
-	"github.com/noisysockets/nsh/internal/validate"
 )
 
-func AddServer(logger *slog.Logger, configPath, address string) error {
-	return util.UpdateConfig(logger, configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
+func AddServer(configPath, address string) error {
+	return util.UpdateConfig(configPath, func(conf *latestconfig.Config) (*latestconfig.Config, error) {
 		if conf.DNS == nil {
 			conf.DNS = &latestconfig.DNSConfig{}
 		}
 
 		// Do we already have a server with this address?
 		for _, existingAddr := range conf.DNS.Servers {
-			if existingAddr == address {
+			if existingAddr.String() == address {
 				return nil, errors.New("server already exists")
 			}
 		}
 
-		if err := validate.IP(address); err != nil {
+		var server types.MaybeAddrPort
+		if err := server.UnmarshalText([]byte(address)); err != nil {
 			return nil, fmt.Errorf("invalid address: %w", err)
 		}
 
 		// Add the new server.
-		conf.DNS.Servers = append(conf.DNS.Servers, address)
+		conf.DNS.Servers = append(conf.DNS.Servers, server)
 
 		return conf, nil
 	})

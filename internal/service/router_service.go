@@ -25,7 +25,6 @@ var _ Service = (*RouterService)(nil)
 // RouterService is a service that forwards packets from the source network to
 // the destination network and vice versa.
 type RouterService struct {
-	logger      *slog.Logger
 	dstNet      network.Network
 	enableNAT64 bool
 	nat64Prefix netip.Prefix
@@ -33,9 +32,8 @@ type RouterService struct {
 
 // Router returns a service that forwards packets from the source network to
 // the destination network and vice versa.
-func Router(logger *slog.Logger, dstNet network.Network, enableNAT64 bool, nat64Prefix netip.Prefix) *RouterService {
+func Router(dstNet network.Network, enableNAT64 bool, nat64Prefix netip.Prefix) *RouterService {
 	return &RouterService{
-		logger:      logger,
 		dstNet:      dstNet,
 		enableNAT64: enableNAT64,
 		nat64Prefix: nat64Prefix,
@@ -43,7 +41,7 @@ func Router(logger *slog.Logger, dstNet network.Network, enableNAT64 bool, nat64
 }
 
 func (s *RouterService) Serve(ctx context.Context, net network.Network) error {
-	s.logger.Info("Enabling packet forwarding")
+	slog.Info("Enabling packet forwarding")
 
 	fwdConf := forwarder.ForwarderConfig{
 		AllowedDestinations: []netip.Prefix{
@@ -55,7 +53,7 @@ func (s *RouterService) Serve(ctx context.Context, net network.Network) error {
 	}
 
 	userspaceNet := net.(*noisysockets.NoisySocketsNetwork).UserspaceNetwork
-	fwd, err := forwarder.New(ctx, s.logger, userspaceNet, s.dstNet, &fwdConf)
+	fwd, err := forwarder.New(ctx, slog.Default(), userspaceNet, s.dstNet, &fwdConf)
 	if err != nil {
 		return fmt.Errorf("failed to create packet forwarder: %w", err)
 	}

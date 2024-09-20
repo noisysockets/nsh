@@ -20,9 +20,11 @@ import (
 	"time"
 
 	"github.com/adrg/xdg"
+	"github.com/dpeckett/telemetry"
+	"github.com/dpeckett/telemetry/v1alpha1"
 	"github.com/noisysockets/network"
 	"github.com/noisysockets/noisysockets/config"
-	latestconfig "github.com/noisysockets/noisysockets/config/v1alpha2"
+	configtypes "github.com/noisysockets/noisysockets/config/types"
 	configcmd "github.com/noisysockets/nsh/cmd/config"
 	dnscmd "github.com/noisysockets/nsh/cmd/dns"
 	peercmd "github.com/noisysockets/nsh/cmd/peer"
@@ -31,19 +33,15 @@ import (
 	"github.com/noisysockets/nsh/internal/constants"
 	"github.com/noisysockets/nsh/internal/service"
 	"github.com/noisysockets/nsh/internal/util"
-	"github.com/noisysockets/telemetry"
-	"github.com/noisysockets/telemetry/gen/telemetry/v1alpha1"
 
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-
-	var conf *latestconfig.Config
+	var conf configtypes.Config
 	configPath, err := xdg.ConfigFile("nsh/noisysockets.yaml")
 	if err != nil {
-		logger.Error("Error getting config file path", slog.Any("error", err))
+		slog.Error("Error getting config file path", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -62,9 +60,9 @@ func main() {
 	}
 
 	initLogger := func(c *cli.Context) error {
-		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 			Level: (*slog.Level)(c.Generic("log-level").(*util.LevelFlag)),
-		}))
+		})))
 
 		return nil
 	}
@@ -72,7 +70,7 @@ func main() {
 	loadConfig := func(c *cli.Context) error {
 		configPath := c.String("config")
 
-		logger.Debug("Loading config", slog.String("path", configPath))
+		slog.Debug("Loading config", slog.String("path", configPath))
 
 		configFile, err := os.Open(configPath)
 		if err != nil {
@@ -96,10 +94,14 @@ func main() {
 	var telemetryReporter *telemetry.Reporter
 
 	initTelemetry := func(c *cli.Context) error {
-		telemetryReporter = telemetry.NewReporter(c.Context, logger, telemetry.Configuration{
-			BaseURL:   constants.TelemetryURL,
-			AuthToken: constants.TelemetryToken,
-			Tags:      []string{"nsh"},
+		// Compatibility with the old environment variable.
+		if os.Getenv("NSH_NO_TELEMETRY") != "" {
+			os.Setenv("DO_NOT_TRACK", "1")
+		}
+
+		telemetryReporter = telemetry.NewReporter(c.Context, slog.Default(), telemetry.Configuration{
+			BaseURL: constants.TelemetryURL,
+			Tags:    []string{"nsh"},
 		})
 
 		// Some basic system information.
@@ -116,7 +118,7 @@ func main() {
 		}
 
 		telemetryReporter.ReportEvent(&v1alpha1.TelemetryEvent{
-			Kind:   v1alpha1.TelemetryEventKind_INFO,
+			Kind:   v1alpha1.TelemetryEventKindInfo,
 			Name:   "ApplicationStart",
 			Values: info,
 		})
@@ -130,7 +132,7 @@ func main() {
 		}
 
 		telemetryReporter.ReportEvent(&v1alpha1.TelemetryEvent{
-			Kind: v1alpha1.TelemetryEventKind_INFO,
+			Kind: v1alpha1.TelemetryEventKindInfo,
 			Name: "ApplicationStop",
 		})
 
@@ -139,7 +141,7 @@ func main() {
 		defer cancel()
 
 		if err := telemetryReporter.Shutdown(ctx); err != nil {
-			logger.Error("Failed to close telemetry reporter", slog.Any("error", err))
+			slog.Error("Failed to close telemetry reporter", slog.Any("error", err))
 		}
 
 		return nil
@@ -181,7 +183,7 @@ func main() {
 						Before: beforeAll(initLogger, initTelemetry),
 						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
-							return configcmd.Init(logger,
+							return configcmd.Init(
 								c.String("config"),
 								c.String("name"),
 								c.Int("listen-port"),
@@ -204,7 +206,6 @@ func main() {
 						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return configcmd.Import(
-								logger,
 								c.String("config"),
 								c.String("input"))
 						},
@@ -287,7 +288,6 @@ func main() {
 						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return peercmd.Add(
-								logger,
 								c.String("config"),
 								c.String("name"),
 								c.String("public-key"),
@@ -311,7 +311,6 @@ func main() {
 							}
 
 							return peercmd.Remove(
-								logger,
 								c.String("config"),
 								c.Args().First(),
 							)
@@ -344,7 +343,6 @@ func main() {
 						After:  shutdownTelemetry,
 						Action: func(c *cli.Context) error {
 							return routecmd.Add(
-								logger,
 								c.String("config"),
 								c.String("destination"),
 								c.String("via"),
@@ -366,7 +364,6 @@ func main() {
 							}
 
 							return routecmd.Remove(
-								logger,
 								c.String("config"),
 								c.Args().First(),
 							)
@@ -397,7 +394,6 @@ func main() {
 									}
 
 									return dnscmd.AddServer(
-										logger,
 										c.String("config"),
 										c.Args().First(),
 									)
@@ -429,6 +425,10 @@ func main() {
 						Usage: "The DNS64/NAT64 prefix",
 						Value: "64:ff9b::/96",
 					},
+					&cli.StringFlag{
+						Name:  "dns-upstream",
+						Usage: "Upstream DNS servers",
+					},
 				}, sharedFlags...),
 				Before: beforeAll(initLogger, initTelemetry, loadConfig),
 				After:  shutdownTelemetry,
@@ -443,11 +443,11 @@ func main() {
 					var services []service.Service
 
 					if c.Bool("enable-dns") {
-						services = append(services, service.DNS(logger, enableNAT64, nat64Prefix))
+						services = append(services, service.DNS(enableNAT64, nat64Prefix, c.StringSlice("dns-upstream")))
 					}
 
 					if c.Bool("enable-router") {
-						services = append(services, service.Router(logger, network.Host(), enableNAT64, nat64Prefix))
+						services = append(services, service.Router(network.Host(), enableNAT64, nat64Prefix))
 					}
 
 					// If all services are disabled, then throw an error.
@@ -456,14 +456,14 @@ func main() {
 						return errors.New("at least one service must be enabled")
 					}
 
-					return upcmd.Up(c.Context, logger, conf, services)
+					return upcmd.Up(c.Context, conf, services)
 				},
 			},
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		logger.Error("Error", slog.Any("error", err))
+		slog.Error("Error", slog.Any("error", err))
 		os.Exit(1)
 	}
 }

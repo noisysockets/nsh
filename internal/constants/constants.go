@@ -10,7 +10,6 @@
 package constants
 
 var (
-	TelemetryURL   = "https://telemetry.noisysockets.com/api"
-	TelemetryToken = "" // Populated at build time.
-	Version        = "dev"
+	TelemetryURL = "https://telemetry.dpeckett.dev"
+	Version      = "dev"
 )
